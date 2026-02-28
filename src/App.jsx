@@ -1,12 +1,14 @@
-import './App.css'
+import WalletAuth from "./components/WalletAuth";
+import MapComponent from "./components/Map";
+import "./App.css";
 
 function App() {
-
   return (
-    <div className="App">
-      hello
-    </div>
-  )
+    <WalletAuth>
+      {/* ── Authenticated app content goes here ── */}
+      <MapComponent />
+    </WalletAuth>
+  );
 }
 
-export default App
+export default App;
