@@ -9,19 +9,23 @@ import Admin from "./pages/Admin";
 import AiDashboard from "./pages/AiDashboard";
 import AboutUs from "./pages/AboutUs";
 import bgMusic from "./assets/backg.mp3";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function App() {
   const audioRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(true);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
 
   useEffect(() => {
     const playAudio = () => {
       if (audioRef.current) {
         audioRef.current.play().catch((err) => {
-          console.log(
-            "Audio autoplay was prevented. User interaction needed.",
-            err,
-          );
+          // Silent catch for initial blocked autoplay
         });
       }
     };
@@ -32,8 +36,17 @@ function App() {
     // Listen for first interaction to play if blocked initially
     window.addEventListener("click", playAudio, { once: true });
 
-    return () => window.removeEventListener("click", playAudio);
-  }, []);
+    // Expose toggle to window
+    window.toggleFaltricAudio = () => {
+      setIsMuted((m) => !m);
+      return !isMuted; // Return new state
+    };
+
+    return () => {
+      window.removeEventListener("click", playAudio);
+      delete window.toggleFaltricAudio;
+    };
+  }, [isMuted]);
 
   return (
     <BrowserRouter>

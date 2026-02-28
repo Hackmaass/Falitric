@@ -170,9 +170,9 @@ export default function Admin({ user }) {
       if (!z.coords) return;
       const poly = new window.google.maps.Polygon({
         paths: z.coords,
-        fillColor: "#6b8a1e",
+        fillColor: "#fbbf24", // Solar Yellow by default
         fillOpacity: 0.25,
-        strokeColor: "#415514",
+        strokeColor: "#d97706",
         strokeOpacity: 0.9,
         strokeWeight: 2,
         map: mapObj.current,

@@ -4,9 +4,11 @@ import { Link, useLocation } from "react-router-dom";
 export default function Navbar({ user, onLogout }) {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(true);
 
   const isAdmin = user?.role === "admin";
-  const short = user?.wallet_address
+  const isWallet = user?.wallet_address && user.wallet_address.startsWith("0x");
+  const short = isWallet
     ? `${user.wallet_address.slice(0, 6)}...${user.wallet_address.slice(-4)}`
     : null;
 
@@ -96,6 +98,21 @@ export default function Navbar({ user, onLogout }) {
               </span>
             </button>
           )}
+
+          <button
+            onClick={() => {
+              if (window.toggleFaltricAudio) {
+                const muted = window.toggleFaltricAudio();
+                setAudioMuted(muted);
+              }
+            }}
+            className="sndbx hidden sm:flex p-2.5 rounded-xl text-[#A1A1AA] hover:text-white hover:bg-white/5 transition-colors"
+            title={audioMuted ? "Unmute Audio" : "Mute Audio"}
+          >
+            <span className="material-symbols-outlined !text-[20px]">
+              {audioMuted ? "volume_off" : "volume_up"}
+            </span>
+          </button>
 
           {/* Mobile hamburger */}
           <button

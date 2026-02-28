@@ -1,12 +1,12 @@
 // Exchange — Faltric P2P Energy Exchange with Firebase backend
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { database, ref, push, onValue, get, set, update } from "../firebase";
 
 const walletKey = (addr) => addr?.toLowerCase().replace(/[.#$[\]]/g, "_") || "";
 
 export default function Exchange({ user }) {
   const [side, setSide] = useState("buy");
-  const [price, setPrice] = useState("1.05");
+  const [price, setPrice] = useState("0.0025");
   const [amount, setAmount] = useState("");
   const [orderType, setOrderType] = useState("limit");
   const [orders, setOrders] = useState([]);
@@ -14,6 +14,23 @@ export default function Exchange({ user }) {
   const [balance, setBalance] = useState(user?.token_balance ?? 0);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Dynamic Sellers based on order book
+  const dynamicSellers = useMemo(() => {
+    return orders
+      .filter((o) => o.side === "sell" && o.wallet !== user?.wallet_address)
+      .map((o) => ({
+        id:
+          o.wallet.substring(0, 5) +
+          "..." +
+          o.wallet.substring(o.wallet.length - 3),
+        dist: (Math.random() * 5 + 0.5).toFixed(1) + " km",
+        type: "Renewable",
+        avail: o.amount.toLocaleString(),
+        rawOrder: o,
+      }))
+      .slice(0, 3);
+  }, [orders, user?.wallet_address]);
 
   // Live chart data state
   const [chartData, setChartData] = useState([
@@ -170,7 +187,7 @@ export default function Exchange({ user }) {
           type: "P2P Energy Sale",
         });
 
-        showToast(`✅ Bought ${qty} Units @ ${match.price} USDC!`);
+        showToast(`✅ Bought ${qty} Units @ ${match.price} FAL!`);
       } else if (opposites.length > 0 && side === "sell") {
         // Execute trade against best matching bid
         const match = opposites[0]; // highest bid for sell
@@ -207,7 +224,7 @@ export default function Exchange({ user }) {
           type: "P2P Energy Sale",
         });
 
-        showToast(`✅ Sold ${qty} Units @ ${match.price} USDC!`);
+        showToast(`✅ Sold ${qty} Units @ ${match.price} FAL!`);
       } else {
         // No match – place open order
         await push(ref(database, "faltric_orders"), {
@@ -221,7 +238,7 @@ export default function Exchange({ user }) {
           timestamp: Date.now(),
         });
         showToast(
-          `📋 Order placed: ${side === "buy" ? "Buy" : "Sell"} ${qty} Units @ ${px} USDC`,
+          `📋 Order placed: ${side === "buy" ? "Buy" : "Sell"} ${qty} Units @ ${px} FAL`,
         );
       }
 
@@ -283,15 +300,26 @@ export default function Exchange({ user }) {
                 FAL
               </span>
             </p>
+            {(!user?.wallet_address || user.wallet_address === "admin") && (
+              <button
+                onClick={() => window.connectFaltricWallet?.()}
+                className="mt-2 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 relative z-10"
+              >
+                <span className="material-symbols-outlined !text-[14px]">
+                  link
+                </span>
+                Connect Wallet to Trade
+              </button>
+            )}
           </div>
           <div className="skeuo-card p-5 flex-1 rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-transparent shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
             <p className="text-xs text-[#A1A1AA] font-semibold uppercase mb-2">
               Current Rate
             </p>
             <p className="text-3xl font-bold text-white font-mono tracking-tight">
-              1.05{" "}
+              0.0025{" "}
               <span className="text-xs font-semibold align-top text-white/40 ml-1">
-                USDC
+                FAL
               </span>
             </p>
             <p className="text-xs text-emerald-400 font-semibold mt-2 flex items-center gap-1">
@@ -364,7 +392,7 @@ export default function Exchange({ user }) {
                 <thead>
                   <tr className="text-[10px] uppercase text-[#A1A1AA] font-semibold border-b border-white/5 bg-black/20 tracking-wider">
                     <th className="px-6 py-4 font-mono">Side</th>
-                    <th className="px-6 py-4 font-mono">Price (USDC)</th>
+                    <th className="px-6 py-4 font-mono">Price (FAL)</th>
                     <th className="px-6 py-4 font-mono">Amount (Units)</th>
                     <th className="px-6 py-4 text-right font-mono">Total</th>
                     <th className="px-6 py-4 text-center">Action</th>
@@ -516,7 +544,7 @@ export default function Exchange({ user }) {
                             {parseFloat(t.price).toFixed(3)}
                           </td>
                           <td className="px-6 py-3 text-right font-semibold">
-                            {parseFloat(t.total).toFixed(2)} USDC
+                            {parseFloat(t.total).toFixed(2)} FAL
                           </td>
                           <td className="px-6 py-3 text-right text-white/40 text-[11px]">
                             {new Date(t.timestamp).toLocaleTimeString()}
@@ -551,49 +579,48 @@ export default function Exchange({ user }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    {
-                      id: "0x7F2...39A",
-                      dist: "1.2 km",
-                      type: "Solar",
-                      avail: "4,500",
-                    },
-                    {
-                      id: "0x99B...12C",
-                      dist: "3.4 km",
-                      type: "Wind",
-                      avail: "12,000",
-                    },
-                    {
-                      id: "0x3A1...88F",
-                      dist: "5.1 km",
-                      type: "Biogas",
-                      avail: "8,200",
-                    },
-                  ].map((s, i) => (
-                    <tr
-                      key={i}
-                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                    >
-                      <td className="px-6 py-3 font-semibold text-emerald-400">
-                        {s.id}
-                      </td>
-                      <td className="px-6 py-3 text-[#A1A1AA]">{s.dist}</td>
-                      <td className="px-6 py-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-white/10 text-white border border-white/20">
-                          {s.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-right font-semibold">
-                        {s.avail} Units
-                      </td>
-                      <td className="px-6 py-3 text-center">
-                        <button className="text-[10px] font-bold px-3 py-1.5 rounded-md uppercase transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white">
-                          Connect
-                        </button>
+                  {dynamicSellers.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="py-12 text-center text-[#A1A1AA] font-medium text-sm border-t border-white/5"
+                      >
+                        No sellers nearby right now.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    dynamicSellers.map((s, i) => (
+                      <tr
+                        key={i}
+                        className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                      >
+                        <td className="px-6 py-3 font-semibold text-emerald-400">
+                          {s.id}
+                        </td>
+                        <td className="px-6 py-3 text-[#A1A1AA]">{s.dist}</td>
+                        <td className="px-6 py-3">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-white/10 text-white border border-white/20">
+                            {s.type}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 text-right font-semibold">
+                          {s.avail} Units
+                        </td>
+                        <td className="px-6 py-3 text-center">
+                          <button
+                            onClick={() => {
+                              setSide("buy");
+                              setPrice(s.rawOrder.price.toString());
+                              setAmount(s.rawOrder.amount.toString());
+                            }}
+                            className="text-[10px] font-bold px-3 py-1.5 rounded-md uppercase transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white"
+                          >
+                            Connect
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -676,7 +703,7 @@ export default function Exchange({ user }) {
                       className="w-full bg-[#111] border border-white/10 rounded-xl text-white p-4 font-mono text-xl focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 placeholder-white/20 transition-all shadow-inner"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/50 bg-white/5 rounded px-2 py-1 uppercase tracking-wider group-focus-within:text-white/80 transition-colors">
-                      USDC
+                      FAL
                     </span>
                   </div>
                 </div>
@@ -744,7 +771,7 @@ export default function Exchange({ user }) {
                         ? `${(parseFloat(amount || 0) * parseFloat(price || 0)).toFixed(2)}`
                         : "0.00"}{" "}
                       <span className="text-[10px] text-white/50 font-sans tracking-wide">
-                        USDC
+                        FAL
                       </span>
                     </span>
                   </div>
@@ -754,8 +781,8 @@ export default function Exchange({ user }) {
                     </span>
                     <span className="text-[11px] text-white/50 font-mono">
                       {amount && price
-                        ? `${(parseFloat(amount || 0) * parseFloat(price || 0) * 0.001).toFixed(4)} USDC`
-                        : "0.0000 USDC"}
+                        ? `${(parseFloat(amount || 0) * parseFloat(price || 0) * 0.001).toFixed(4)} FAL`
+                        : "0.0000 FAL"}
                     </span>
                   </div>
                 </div>

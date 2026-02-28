@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import MapComponent from "../components/Map";
 import { database, ref, set } from "../firebase";
 
@@ -6,12 +6,60 @@ export default function GridMap({ user }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [drawingModeEnabled, setDrawingModeEnabled] = useState(false);
   const [pendingCoords, setPendingCoords] = useState(null);
+  const [energyData, setEnergyData] = useState([]);
+  const [liveFluctuation, setLiveFluctuation] = useState(1);
 
   const [newPlant, setNewPlant] = useState({
     name: "",
     type: "Solar",
     capacity: "",
   });
+
+  useEffect(() => {
+    fetch("/energy_data.json")
+      .then((res) => res.json())
+      .then((data) => setEnergyData(data))
+      .catch((err) => console.error("Failed to load energy data", err));
+
+    // Mock live fluctuation for "Real Data" feel
+    const interval = setInterval(() => {
+      setLiveFluctuation(0.98 + Math.random() * 0.04);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Global Grid Metrics (Dynamic)
+  const globalMetrics = useMemo(() => {
+    if (energyData.length === 0)
+      return { load: "...", nodes: "...", co2: "..." };
+
+    const totalOutput = energyData.reduce((sum, d) => sum + d.output_kwh, 0);
+    const totalDemand = energyData.reduce((sum, d) => sum + d.demand_kwh, 0);
+    const loadPercent = Math.round((totalDemand / (totalOutput || 1)) * 100);
+    const co2Saved = Math.round(totalOutput * 0.85); // 0.85kg per kWh
+
+    return {
+      load: `${loadPercent}%`,
+      nodes: energyData.length.toLocaleString(),
+      co2: `${(co2Saved / 1000).toFixed(1)}t`,
+    };
+  }, [energyData]);
+
+  // Selected Node Data (Mocking selection of #4291 for now)
+  const selectedNode = useMemo(() => {
+    const node = energyData.find((d) => d.node_id === "ND-4291") || {
+      output_kwh: 450,
+      demand_kwh: 450,
+      efficiency_ratio: 0.9,
+      type: "Solar",
+    };
+    return {
+      output: Math.round(node.output_kwh * liveFluctuation),
+      demand: Math.round(node.demand_kwh * liveFluctuation),
+      efficiency: (node.efficiency_ratio * 100).toFixed(1),
+      type: node.type,
+    };
+  }, [energyData, liveFluctuation]);
 
   const handlePolygonDrawn = (coords) => {
     setPendingCoords(coords);
@@ -60,6 +108,7 @@ export default function GridMap({ user }) {
           user={user}
           drawingModeEnabled={drawingModeEnabled}
           onPolygonDrawn={handlePolygonDrawn}
+          energyData={energyData}
         />
       </div>
 
@@ -79,16 +128,33 @@ export default function GridMap({ user }) {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {["Solar", "Wind", "Bio", "Battery"].map((f, i) => (
+            {[
+              {
+                name: "Solar",
+                color: "text-amber-400 border-amber-500/30 bg-amber-500/5",
+              },
+              {
+                name: "Wind",
+                color: "text-blue-400 border-blue-500/30 bg-blue-500/5",
+              },
+              {
+                name: "Biogas",
+                color: "text-green-400 border-green-500/30 bg-green-500/5",
+              },
+              {
+                name: "Battery",
+                color: "text-purple-400 border-purple-500/30 bg-purple-500/5",
+              },
+            ].map((f, i) => (
               <button
-                key={f}
-                className={`flex-1 h-10 rounded-xl text-xs font-semibold uppercase transition-colors border ${
+                key={f.name}
+                className={`flex-1 h-10 rounded-xl text-[10px] font-bold uppercase transition-all border ${
                   i === 0
                     ? "bg-white/10 text-white border-white/20 shadow-sm"
-                    : "bg-transparent text-[#A1A1AA] border-white/5 hover:bg-white/5 hover:text-white"
+                    : `${f.color} hover:bg-white/5`
                 }`}
               >
-                {f}
+                {f.name}
               </button>
             ))}
           </div>
@@ -118,7 +184,7 @@ export default function GridMap({ user }) {
                 </h3>
               </div>
               <div className="px-3 py-1 text-[10px] font-bold text-white/80 bg-white/10 rounded-md border border-white/10 backdrop-blur-sm uppercase tracking-wider">
-                SOLAR ARRAY
+                {selectedNode.type.toUpperCase()} ARRAY
               </div>
             </div>
           </div>
@@ -126,8 +192,8 @@ export default function GridMap({ user }) {
           <div className="p-5 flex flex-col gap-5 bg-[#0A0A0A]/80 backdrop-blur-md">
             <div className="grid grid-cols-2 gap-4">
               {[
-                ["Current Output", "450", "kWh"],
-                ["Capacity", "500", "kWh"],
+                ["Current Output", selectedNode.output, "kWh"],
+                ["Current Demand", selectedNode.demand, "kWh"],
               ].map(([lbl, val, unit]) => (
                 <div
                   key={lbl}
@@ -162,23 +228,34 @@ export default function GridMap({ user }) {
               <div className="flex justify-between items-center text-sm">
                 <span className="font-medium flex items-center gap-2 text-xs text-[#A1A1AA]">
                   <span className="material-symbols-outlined !text-[16px]">
-                    health_and_safety
+                    analytics
                   </span>
-                  Health
+                  Efficiency
                 </span>
-                <div className="w-24 h-2 bg-black rounded-full border border-white/10 overflow-hidden relative">
-                  <div className="absolute left-0 top-0 bottom-0 bg-emerald-500 w-[98%] shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-bold text-xs">
+                    {selectedNode.efficiency}%
+                  </span>
+                  <div className="w-24 h-2 bg-black rounded-full border border-white/10 overflow-hidden relative">
+                    <div
+                      className="absolute left-0 top-0 bottom-0 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000"
+                      style={{ width: `${selectedNode.efficiency}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="pt-2 flex gap-3">
-              <button className="flex-1 skeuo-button text-white rounded-xl py-3 font-semibold text-sm shadow-glow flex items-center justify-center gap-2">
+              <button
+                onClick={() => (window.location.href = "/exchange")}
+                className="flex-1 skeuo-button text-white rounded-xl py-3 font-semibold text-sm shadow-glow flex items-center justify-center gap-2"
+              >
                 Trade Energy
               </button>
               <button className="size-12 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/10 transition-colors">
                 <span className="material-symbols-outlined !text-[20px]">
-                  analytics
+                  monitoring
                 </span>
               </button>
             </div>
@@ -189,9 +266,9 @@ export default function GridMap({ user }) {
       {/* Top stats bar */}
       <div className="absolute top-28 left-1/2 -translate-x-1/2 z-20 glass-nav rounded-2xl px-8 py-3 flex items-center gap-8 pointer-events-auto border border-white/10">
         {[
-          ["Grid Load", "78%"],
-          ["Active Nodes", "1,245"],
-          ["CO2 Saved", "450t"],
+          ["Grid Load", globalMetrics.load],
+          ["Active Nodes", globalMetrics.nodes],
+          ["CO2 Saved", globalMetrics.co2],
         ].map(([label, val], i) => (
           <div key={label} className="flex items-center gap-8">
             {i > 0 && <div className="w-px h-8 bg-white/10" />}
@@ -324,14 +401,30 @@ export default function GridMap({ user }) {
                   Energy Type
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {["Solar", "Wind", "Biogas"].map((type) => (
+                  {[
+                    {
+                      type: "Solar",
+                      active:
+                        "bg-amber-500/20 text-amber-400 border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]",
+                    },
+                    {
+                      type: "Wind",
+                      active:
+                        "bg-blue-500/20 text-blue-400 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.2)]",
+                    },
+                    {
+                      type: "Biogas",
+                      active:
+                        "bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]",
+                    },
+                  ].map(({ type, active }) => (
                     <button
                       key={type}
                       type="button"
                       onClick={() => setNewPlant({ ...newPlant, type })}
                       className={`py-2 rounded-lg text-xs font-semibold uppercase border transition-all ${
                         newPlant.type === type
-                          ? "bg-white/10 text-white border-white/30 shadow-sm"
+                          ? active
                           : "bg-black/40 text-white/50 border-white/5 hover:bg-white/5 hover:text-white/80"
                       }`}
                     >

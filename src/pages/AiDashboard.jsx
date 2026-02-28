@@ -57,55 +57,24 @@ Based on the localized temporal patterns in your grid, we've identified key opti
     setAnalysis("");
 
     try {
-      const apiKey = import.meta.env.VITE_SARVAM_API_KEY;
-
-      if (!apiKey || apiKey === "your_sarvam_api_key_here") {
-        // Fallback to mock analysis if no API key is set
-        setTimeout(() => {
-          setAnalysis(FALLBACK_ANALYSIS);
-          setIsAnalyzing(false);
-        }, 1500);
-        return;
-      }
-
-      // Real Sarvam AI call
+      // Prompt construction for the AI
       const prompt = `Analyze the provided JSON data about decentralized power plant nodes and provide a concise, insightful report on efficiency, anomalies, and recommendations. Here is the dataset: ${JSON.stringify(energyData)}`;
 
-      const response = await fetch(
-        "https://api.sarvam.ai/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "api-subscription-key": apiKey,
-          },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "system",
-                content: "You are an expert AI energy grid analyst.",
-              },
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-            model: "sarvam-m",
-            temperature: 0.7,
-          }),
-        },
-      );
+      const response = await fetch("http://localhost:3000/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: prompt }),
+      });
 
       if (!response.ok) {
-        throw new Error(
-          `Sarvam API error: ${response.status} ${response.statusText}`,
-        );
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Server error: ${response.status}`);
       }
 
       const result = await response.json();
-      setAnalysis(result.choices[0].message.content);
+      setAnalysis(result.text || "NO_TRANSMISSION_RECEIVED");
     } catch (err) {
-      console.error("Sarvam Analysis failed:", err);
+      console.error("Grid Analysis failed:", err);
       // Fallback response on error
       setAnalysis(FALLBACK_ANALYSIS);
     } finally {
@@ -398,9 +367,8 @@ Based on the localized temporal patterns in your grid, we've identified key opti
                       an intelligence report.
                     </p>
                     <p className="text-white/40 text-xs mt-2 max-w-md">
-                      Note: If no VITE_SARVAM_API_KEY is found in the
-                      environment variables, a mock analysis will be returned
-                      for presentation purposes.
+                      Note: Grid intelligence is processed via the Faltric
+                      secure backend proxy.
                     </p>
                   </div>
                 )}

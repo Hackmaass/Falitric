@@ -26,7 +26,12 @@ function loadGoogleMapsOnce(apiKey) {
   return _mapsPromise;
 }
 
-const MapComponent = ({ user, drawingModeEnabled, onPolygonDrawn }) => {
+const MapComponent = ({
+  user,
+  drawingModeEnabled,
+  onPolygonDrawn,
+  energyData,
+}) => {
   const mapRef = useRef(null);
   const [locations, setLocations] = useState([]);
   const [add, setAdd] = useState([]);
@@ -123,7 +128,7 @@ const MapComponent = ({ user, drawingModeEnabled, onPolygonDrawn }) => {
 
     function initializeGoogleMap() {
       const map = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 18.531581666666668, lng: 73.86704833333333 },
+        center: { lat: 21.04718, lng: 75.769189 },
         zoom: 18,
         mapTypeId: "hybrid",
         streetViewControl: false,
@@ -248,22 +253,46 @@ const MapComponent = ({ user, drawingModeEnabled, onPolygonDrawn }) => {
     polygonRefs.current = [];
 
     Object.entries(polygons).forEach(([id, polyData]) => {
+      const type = (polyData.type || "").toLowerCase();
+      let color = "#10b981"; // default emerald
+      if (type.includes("solar"))
+        color = "#fbbf24"; // yellow
+      else if (type.includes("wind"))
+        color = "#3b82f6"; // blue
+      else if (type.includes("biogas") || type === "bio") color = "#22c55e"; // green
+
+      const nodeData = (energyData || []).find(
+        (d) =>
+          d.node_id === id ||
+          d.node_id.includes(polyData.name) ||
+          (polyData.name && polyData.name.includes(d.node_id.split("-")[1])),
+      );
+
+      const output = nodeData
+        ? nodeData.output_kwh
+        : polyData.capacity * 0.8 || "...";
+      const demand = nodeData
+        ? nodeData.demand_kwh
+        : polyData.capacity * 0.7 || "...";
+
       const polygon = new window.google.maps.Polygon({
         paths: polyData.coordinates,
-        strokeColor: "#10b981",
+        strokeColor: color,
         strokeOpacity: 0.8,
         strokeWeight: 2,
-        fillColor: "#10b981",
+        fillColor: color,
         fillOpacity: 0.35,
         map: map,
       });
 
       const infoWindow = new window.google.maps.InfoWindow({
         content: `
-          <div style="color: black; padding: 5px; font-family: sans-serif;">
-            <h3 style="margin-top: 0; color: #10b981; font-size: 14px;">⚡ ${polyData.name || "Grid Zone"}</h3>
+          <div style="color: black; padding: 10px; font-family: sans-serif; min-width: 150px;">
+            <h3 style="margin: 0 0 8px 0; color: #10b981; font-size: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 4px;">⚡ ${polyData.name || "Grid Zone"}</h3>
             <p style="margin: 4px 0; font-size: 12px;"><strong>Type:</strong> ${polyData.type || "Power Plant"}</p>
-            <p style="margin: 4px 0; font-size: 12px;"><strong>Capacity:</strong> ${polyData.capacity || "Unknown"} Units</p>
+            <p style="margin: 4px 0; font-size: 12px; color: #059669;"><strong>Live Output:</strong> ${output} kWh</p>
+            <p style="margin: 4px 0; font-size: 12px; color: #dc2626;"><strong>Live Demand:</strong> ${demand} kWh</p>
+            <p style="margin: 8px 0 0 0; font-size: 10px; color: #6b7280; font-style: italic;">Status: Operational</p>
           </div>
         `,
       });

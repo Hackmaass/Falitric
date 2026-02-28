@@ -133,3 +133,14 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+:focus-visible,
+:focus-within,
+:focus {
+  outline: none;
+  stroke: none;
+}
+
+*{
+  filter: contrast(1.01) brightness(1.01);
+}

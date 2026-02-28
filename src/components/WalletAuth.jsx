@@ -8,6 +8,33 @@ import "./WalletAuth.css";
 const ADMIN_EMAIL = "test@admin.com";
 const ADMIN_PASSWORD = "testadmin";
 
+// ERC20 Contract syncing
+const ERC20_ABI = ["function balanceOf(address owner) view returns (uint256)"];
+const TOKEN_ADDRESS = import.meta.env.VITE_FAL_TOKEN_ADDRESS;
+
+async function getChainBalance(walletAddress, providerOrSigner) {
+  if (!TOKEN_ADDRESS || walletAddress === "admin") return 0;
+  try {
+    const contract = new ethers.Contract(
+      TOKEN_ADDRESS,
+      ERC20_ABI,
+      providerOrSigner,
+    );
+    // Use a timeout or check if code exists to avoid long hangs or BAD_DATA errors
+    const code = await providerOrSigner.getCode(TOKEN_ADDRESS);
+    if (code === "0x" || code === "0x0") return 0;
+
+    const bal = await contract.balanceOf(walletAddress);
+    return Number(ethers.formatUnits(bal, 18));
+  } catch (err) {
+    // Silence common decoding errors that happen on pre-deployed or invalid addresses
+    if (err.code !== "BAD_DATA") {
+      console.warn("Chain balance fetch skipped:", err.message);
+    }
+    return 0;
+  }
+}
+
 // ── Wallet address => safe Firebase key ───────────────
 const walletKey = (addr) => addr.toLowerCase().replace(/[.#$[\]]/g, "_");
 
@@ -40,12 +67,12 @@ async function emailExists(email) {
 }
 
 // ── Firebase: write new user ──────────────────────────
-async function createUser(walletAddress, data) {
+async function createUser(walletAddress, data, initialBalance = 0) {
   await set(ref(database, `faltric_users/${walletKey(walletAddress)}`), {
     ...data,
     wallet_address: walletAddress.toLowerCase(),
     current_units: 0,
-    token_balance: 1000, // starter tokens for demo
+    token_balance: initialBalance,
     role: "consumer",
     createdAt: Date.now(),
   });
@@ -278,18 +305,38 @@ function SignupScreen({ walletAddress, signer, onSuccess, onSwitchToLogin }) {
       if (!verifySignature(message, signature, walletAddress))
         return setStatus({ type: "error", msg: "Wallet signature invalid." });
 
-      await createUser(walletAddress, {
-        name: form.name.trim(),
-        email: form.email.toLowerCase().trim(),
-        phone: form.phone.trim(),
-        electricity_consumer_number: form.electricity_consumer_number.trim(),
-      });
+      const chainBalance = await getChainBalance(walletAddress, signer);
+
+      // capture geolocation
+      let location = null;
+      if (navigator.geolocation) {
+        location = await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) =>
+              resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => resolve(null),
+            { timeout: 5000 },
+          );
+        });
+      }
+
+      await createUser(
+        walletAddress,
+        {
+          name: form.name.trim(),
+          email: form.email.toLowerCase().trim(),
+          phone: form.phone.trim(),
+          electricity_consumer_number: form.electricity_consumer_number.trim(),
+          last_login_location: location,
+        },
+        chainBalance,
+      );
 
       const userData = {
         wallet_address: walletAddress.toLowerCase(),
         name: form.name.trim(),
         email: form.email.toLowerCase().trim(),
-        token_balance: 1000,
+        token_balance: chainBalance,
         current_units: 0,
         role: "consumer",
       };
@@ -432,9 +479,32 @@ function LoginScreen({ walletAddress, signer, onSuccess, onSwitchToSignup }) {
       if (!verifySignature(message, signature, walletAddress))
         return setStatus({ type: "error", msg: "Wallet signature invalid." });
 
-      // Sync fresh balance from Firebase
-      const freshUser = await getUserByWallet(walletAddress);
-      const { password: _p, ...safe } = freshUser || user;
+      const chainBalance = await getChainBalance(walletAddress, signer);
+
+      // Sync fresh balance from Firebase and update with chain balance
+      const freshUser = (await getUserByWallet(walletAddress)) || user;
+
+      // capture geolocation
+      let location = null;
+      if (navigator.geolocation) {
+        location = await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) =>
+              resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => resolve(null),
+            { timeout: 5000 },
+          );
+        });
+      }
+
+      await update(ref(database, `faltric_users/${walletKey(walletAddress)}`), {
+        token_balance: chainBalance,
+        last_login_location: location,
+      });
+      freshUser.token_balance = chainBalance;
+      freshUser.last_login_location = location;
+
+      const { password: _p, ...safe } = freshUser;
       localStorage.setItem("faltric_user", JSON.stringify(safe));
       setStatus({ type: "success", msg: "Welcome back! 🌿" });
       setTimeout(() => onSuccess(safe), 600);
@@ -521,18 +591,47 @@ export default function WalletAuth({ children }) {
   const [connectLoading, setConnectLoading] = useState(false);
   const [connectError, setConnectError] = useState(null);
 
-  // Sync balance from Firebase on mount (for non-admin)
+  // Sync balance from Firebase/Chain on mount (for non-admin)
   useEffect(() => {
     if (!user || user.role === "admin" || !user.wallet_address) return;
-    get(ref(database, `faltric_users/${walletKey(user.wallet_address)}`)).then(
-      (snap) => {
+
+    const syncBalance = async () => {
+      let chainBal = null;
+      if (window.ethereum) {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          chainBal = await getChainBalance(user.wallet_address, provider);
+        } catch (err) {}
+      }
+      get(
+        ref(database, `faltric_users/${walletKey(user.wallet_address)}`),
+      ).then((snap) => {
         if (snap.exists()) {
-          const fresh = { ...user, ...snap.val() };
+          const dbData = snap.val();
+          const fresh = { ...user, ...dbData };
+
+          // Fix Balance Desync:
+          // 1. If database balance is missing, use chain balance.
+          // 2. If chain balance > database balance (external deposit), update database.
+          // 3. Otherwise, stick with database balance (preserving p2p trades).
+          const dbBal = dbData.token_balance ?? 0;
+          if (
+            chainBal !== null &&
+            (dbData.token_balance === undefined || chainBal > dbBal)
+          ) {
+            fresh.token_balance = chainBal;
+            update(
+              ref(database, `faltric_users/${walletKey(user.wallet_address)}`),
+              { token_balance: chainBal },
+            );
+          }
+
           setUser(fresh);
           localStorage.setItem("faltric_user", JSON.stringify(fresh));
         }
-      },
-    );
+      });
+    };
+    syncBalance();
   }, []); // eslint-disable-line
 
   const handleConnect = useCallback(async () => {
@@ -550,6 +649,14 @@ export default function WalletAuth({ children }) {
       setConnectLoading(false);
     }
   }, []);
+
+  // Expose to window for other components (like Exchange) to trigger
+  useEffect(() => {
+    window.connectFaltricWallet = handleConnect;
+    return () => {
+      delete window.connectFaltricWallet;
+    };
+  }, [handleConnect]);
 
   const handleLogout = () => {
     localStorage.removeItem("faltric_user");
