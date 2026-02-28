@@ -15,6 +15,12 @@ export default function Exchange({ user }) {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // Live chart data state
+  const [chartData, setChartData] = useState([
+    40, 60, 45, 80, 55, 70, 90, 65, 50, 75, 60, 85, 95, 70, 55, 40, 30, 50, 65,
+    80, 70, 45, 60, 75,
+  ]);
+
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -38,6 +44,21 @@ export default function Exchange({ user }) {
       }
     });
     return () => unsub();
+  }, []);
+
+  // Live chart animation
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setChartData((prev) => {
+        const newData = [...prev];
+        newData.shift(); // remove first element
+        // Add random new bar (30 to 95)
+        newData.push(Math.floor(Math.random() * 65) + 30);
+        return newData;
+      });
+    }, 1500); // Shift every 1.5 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   // My trades
@@ -149,7 +170,7 @@ export default function Exchange({ user }) {
           type: "P2P Energy Sale",
         });
 
-        showToast(`✅ Bought ${qty} kWh @ ${match.price} USDC!`);
+        showToast(`✅ Bought ${qty} Units @ ${match.price} USDC!`);
       } else if (opposites.length > 0 && side === "sell") {
         // Execute trade against best matching bid
         const match = opposites[0]; // highest bid for sell
@@ -186,7 +207,7 @@ export default function Exchange({ user }) {
           type: "P2P Energy Sale",
         });
 
-        showToast(`✅ Sold ${qty} kWh @ ${match.price} USDC!`);
+        showToast(`✅ Sold ${qty} Units @ ${match.price} USDC!`);
       } else {
         // No match – place open order
         await push(ref(database, "faltric_orders"), {
@@ -200,7 +221,7 @@ export default function Exchange({ user }) {
           timestamp: Date.now(),
         });
         showToast(
-          `📋 Order placed: ${side === "buy" ? "Buy" : "Sell"} ${qty} kWh @ ${px} USDC`,
+          `📋 Order placed: ${side === "buy" ? "Buy" : "Sell"} ${qty} Units @ ${px} USDC`,
         );
       }
 
@@ -217,64 +238,64 @@ export default function Exchange({ user }) {
   const bids = orders.filter((o) => o.side === "buy").slice(0, 5);
 
   return (
-    <main className="flex-grow container mx-auto max-w-7xl px-4 py-8">
+    <main className="flex-grow flex flex-col pt-32 px-4 pb-12 w-full max-w-7xl mx-auto">
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed top-24 right-6 z-50 px-6 py-4 border-[3px] border-black font-bold text-sm shadow-[6px_6px_0_0_#000] transition-all ${toast.type === "error" ? "bg-red-100 text-red-800" : "bg-[#d0db9f] text-[#1e2809]"}`}
+          className={`fixed top-24 right-6 z-50 px-6 py-4 rounded-xl font-bold text-sm shadow-2xl transition-all border ${toast.type === "error" ? "bg-red-900/80 text-red-200 border-red-500/50 backdrop-blur" : "bg-emerald-900/80 text-emerald-200 border-emerald-500/50 backdrop-blur"}`}
         >
           {toast.msg}
         </div>
       )}
 
       {/* Hero row */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8 items-end">
-        <div className="md:col-span-8">
-          <div className="inline-block bg-[#6b8a1e] text-white px-2 py-1 text-xs font-bold uppercase tracking-widest mb-3 border border-[#415514] shadow-[2px_2px_0px_0px_#415514]">
-            Live Market
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 mb-10 items-end relative z-10">
+        <div className="md:col-span-7 lg:col-span-8 flex flex-col gap-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 backdrop-blur-md shadow-lg w-max">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></div>
+            <span className="text-xs font-medium tracking-wide text-white/80 uppercase">
+              Live Market
+            </span>
           </div>
-          <h2
-            className="text-5xl md:text-6xl font-black uppercase tracking-tighter text-white mb-4 leading-none"
-            style={{ textShadow: "4px 4px 0 #1e2809" }}
-          >
-            P2P Energy Exchange
+          <h2 className="font-display text-4xl md:text-5xl font-semibold tracking-tight text-white mb-2 leading-tight drop-shadow-lg">
+            P2P Energy
+            <br />
+            <span className="text-white/40">Exchange</span>
           </h2>
-          <p className="text-[#d0db9f] font-medium max-w-xl text-lg border-l-4 border-[#6b8a1e] pl-4">
-            Decentralized renewable energy trading. 1 FAL = 1 kWh.
+          <p className="text-[#A1A1AA] font-light max-w-xl text-base leading-relaxed">
+            Decentralized renewable energy trading via smart contracts. 1 FAL =
+            0.01 ETH = 400 Units.
           </p>
         </div>
-        <div className="md:col-span-4 flex flex-col sm:flex-row gap-4 justify-end">
-          <div className="bg-zinc-900 border-[3px] border-[#6b8a1e] p-4 flex-1 shadow-[4px_4px_0px_0px_#415514] relative overflow-hidden">
-            <div className="absolute -right-4 -top-4 text-[#6b8a1e]/10">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "80px" }}
-              >
+        <div className="md:col-span-5 lg:col-span-4 flex gap-4 justify-end">
+          <div className="skeuo-card p-5 flex-1 rounded-2xl border border-white/10 relative overflow-hidden group">
+            <div className="absolute -right-4 -top-4 text-white/5 transition-transform group-hover:scale-110 duration-500">
+              <span className="material-symbols-outlined !text-[80px]">
                 account_balance_wallet
               </span>
             </div>
-            <p className="text-xs text-gray-400 font-bold uppercase mb-1 relative z-10">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase mb-2 relative z-10">
               My Balance
             </p>
-            <p className="text-3xl font-black text-white relative z-10">
+            <p className="text-3xl font-bold text-white relative z-10 font-mono tracking-tight">
               {balance.toLocaleString()}{" "}
-              <span className="text-xs font-bold align-top text-[#8faa3a]">
+              <span className="text-xs font-semibold align-top text-white/40 ml-1">
                 FAL
               </span>
             </p>
           </div>
-          <div className="bg-white border-[3px] border-black p-4 flex-1 shadow-[4px_4px_0px_0px_#415514]">
-            <p className="text-xs text-gray-500 font-bold uppercase mb-1">
+          <div className="skeuo-card p-5 flex-1 rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-transparent shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">
+            <p className="text-xs text-[#A1A1AA] font-semibold uppercase mb-2">
               Current Rate
             </p>
-            <p className="text-3xl font-black text-black">
-              1.05 <span className="text-xs font-bold align-top">USDC</span>
+            <p className="text-3xl font-bold text-white font-mono tracking-tight">
+              1.05{" "}
+              <span className="text-xs font-semibold align-top text-white/40 ml-1">
+                USDC
+              </span>
             </p>
-            <p className="text-xs text-[#6b8a1e] font-bold mt-1 flex items-center gap-1">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "14px" }}
-              >
+            <p className="text-xs text-emerald-400 font-semibold mt-2 flex items-center gap-1">
+              <span className="material-symbols-outlined !text-[14px]">
                 trending_up
               </span>
               +2.8% today
@@ -283,78 +304,78 @@ export default function Exchange({ user }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
         {/* Left: Order Book */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
           {/* Live chart (decorative) */}
-          <div className="w-full h-56 bg-zinc-900 border-[3px] border-[#6b8a1e] relative overflow-hidden shadow-[4px_4px_0px_0px_#415514]">
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage:
-                  "linear-gradient(#6b8a1e 1px, transparent 1px), linear-gradient(90deg, #6b8a1e 1px, transparent 1px)",
-                backgroundSize: "24px 24px",
-              }}
-            />
-            <div className="absolute bottom-0 left-0 right-0 h-40 flex items-end px-4 gap-1">
-              {[
-                40, 60, 45, 80, 55, 70, 90, 65, 50, 75, 60, 85, 95, 70, 55, 40,
-                30, 50,
-              ].map((h, i) => (
+          <div className="w-full h-56 rounded-2xl border border-white/10 relative overflow-hidden bg-[#0A0A0A] shadow-inner">
+            <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] mix-blend-overlay"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/5 to-transparent h-full w-full pointer-events-none translate-y-[-100%] animate-[scan_3s_ease-in-out_infinite]"></div>
+
+            <div className="absolute bottom-0 left-0 right-0 h-40 flex items-end px-4 gap-1.5 pb-4">
+              {chartData.map((h, i) => (
                 <div
                   key={i}
-                  className="flex-1 border-t border-x border-[#6b8a1e]/60"
+                  className="flex-1 rounded-t-sm transition-all duration-1000 ease-in-out hover:opacity-100 opacity-60"
                   style={{
                     height: `${h}%`,
-                    background: "linear-gradient(to top, #6b8a1e22, #8faa3a11)",
+                    background:
+                      "linear-gradient(to top, rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0.05))",
+                    borderTop: "1px solid rgba(16, 185, 129, 0.6)",
                   }}
                 />
               ))}
             </div>
-            <div className="absolute top-0 left-0 p-4 w-full flex justify-between items-start bg-gradient-to-b from-black/80 to-transparent">
-              <div className="flex items-center gap-2 border border-[#6b8a1e]/40 bg-black/50 px-2 py-1">
-                <span className="size-2 rounded-full bg-[#8faa3a] animate-pulse" />
-                <span className="text-xs font-bold uppercase text-[#8faa3a] tracking-wider">
-                  Live Feed
+            <div className="absolute top-0 left-0 p-5 w-full flex justify-between items-start">
+              <div className="flex items-center gap-2 border border-white/10 rounded-lg bg-black/40 backdrop-blur-md px-3 py-1.5 shadow-sm">
+                <span className="size-2 rounded-full bg-emerald-500 animate-[pulse_2s_infinite]" />
+                <span className="text-xs font-semibold tracking-wider text-emerald-400 uppercase">
+                  Market Depth
                 </span>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-gray-400 font-mono">VOL_24H</div>
-                <div className="text-xl font-bold text-white">
-                  45,200 <span className="text-xs">kWh</span>
+              <div className="text-right glass-nav px-4 py-2 rounded-xl">
+                <div className="text-[10px] text-[#A1A1AA] uppercase tracking-wider font-semibold">
+                  VOL 24H
+                </div>
+                <div className="text-lg font-bold text-white mt-0.5 font-mono">
+                  45,200{" "}
+                  <span className="text-[10px] text-white/50">Units</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Order Book */}
-          <div className="bg-zinc-900/60 backdrop-blur-sm border-[3px] border-[#6b8a1e] shadow-[4px_4px_0px_0px_#415514]">
-            <div className="flex items-center justify-between px-6 py-4 border-b-[3px] border-black bg-white">
-              <h3 className="text-xl font-black text-black uppercase flex items-center gap-2 tracking-tighter">
-                <span className="material-symbols-outlined">list_alt</span>{" "}
+          <div className="skeuo-card rounded-2xl overflow-hidden border border-white/10 flex flex-col flex-1">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+              <h3 className="text-lg font-semibold text-white uppercase flex items-center gap-2 tracking-wide">
+                <span className="material-symbols-outlined !text-[20px] text-white/60">
+                  list_alt
+                </span>
                 Order Book
               </h3>
-              <span className="text-xs text-[#6b8a1e] font-bold uppercase border-2 border-[#6b8a1e] px-2 py-1">
-                {orders.length} open orders
+              <span className="text-[10px] text-white/60 font-semibold uppercase bg-white/5 px-2.5 py-1 rounded-md border border-white/10">
+                {orders.length} Open Orders
               </span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="text-xs uppercase text-gray-400 font-bold border-b border-gray-700">
-                    <th className="p-3 font-mono">Side</th>
-                    <th className="p-3 font-mono">Price (USDC)</th>
-                    <th className="p-3 font-mono">Amount (kWh)</th>
-                    <th className="p-3 text-right font-mono">Total</th>
-                    <th className="p-3 text-center">Action</th>
+                  <tr className="text-[10px] uppercase text-[#A1A1AA] font-semibold border-b border-white/5 bg-black/20 tracking-wider">
+                    <th className="px-6 py-4 font-mono">Side</th>
+                    <th className="px-6 py-4 font-mono">Price (USDC)</th>
+                    <th className="px-6 py-4 font-mono">Amount (Units)</th>
+                    <th className="px-6 py-4 text-right font-mono">Total</th>
+                    <th className="px-6 py-4 text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody className="text-sm font-mono">
+                <tbody className="text-sm font-mono text-white/90">
                   {asks.length === 0 && bids.length === 0 ? (
                     <tr>
                       <td
                         colSpan={5}
-                        className="p-8 text-center text-gray-500 font-bold uppercase text-xs tracking-widest"
+                        className="py-16 text-center text-[#A1A1AA] font-medium text-sm border-t border-white/5"
                       >
                         No open orders — be the first to list energy!
                       </td>
@@ -364,71 +385,76 @@ export default function Exchange({ user }) {
                       {asks.map((row) => (
                         <tr
                           key={row.id}
-                          className="hover:bg-white/5 transition-colors group border-b border-gray-800/30"
+                          className="hover:bg-white/5 transition-colors group border-b border-white/5"
                         >
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 bg-red-900/50 text-red-300 text-[10px] font-black uppercase border border-red-700">
+                          <td className="px-6 py-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-500/10 text-red-400 border border-red-500/20">
                               ASK
                             </span>
                           </td>
-                          <td className="p-3 text-red-300 font-bold">
+                          <td className="px-6 py-3 text-red-400 font-semibold">
                             {parseFloat(row.price).toFixed(3)}
                           </td>
-                          <td className="p-3 text-gray-300">
+                          <td className="px-6 py-3 text-[#A1A1AA]">
                             {parseFloat(row.amount).toFixed(2)}
                           </td>
-                          <td className="p-3 text-gray-400 text-right">
+                          <td className="px-6 py-3 text-[#A1A1AA] text-right">
                             {parseFloat(row.total).toFixed(2)}
                           </td>
-                          <td className="p-3 text-center">
+                          <td className="px-6 py-3 text-center">
                             <button
                               onClick={() => {
                                 setSide("buy");
                                 setPrice(row.price.toString());
                                 setAmount(row.amount.toString());
                               }}
-                              className="text-xs font-bold px-2 py-1 uppercase border transition-all bg-white text-black border-black hover:bg-[#6b8a1e] hover:text-white hover:border-[#415514]"
+                              className="text-[10px] font-bold px-3 py-1.5 rounded-md uppercase transition-all bg-white/10 text-white hover:bg-white hover:text-black hover:shadow-[0_0_10px_rgba(255,255,255,0.3)] shadow-inner"
                             >
                               Buy
                             </button>
                           </td>
                         </tr>
                       ))}
-                      <tr className="bg-[#1e2809] border-y border-[#6b8a1e]/30">
-                        <td
-                          colSpan={5}
-                          className="py-2 text-center text-xs text-[#8faa3a] font-bold uppercase tracking-widest"
-                        >
-                          — Spread —
-                        </td>
-                      </tr>
+
+                      {/* Spread divider */}
+                      {asks.length > 0 && bids.length > 0 && (
+                        <tr className="bg-white/[0.02]">
+                          <td
+                            colSpan={5}
+                            className="py-2.5 text-center text-[10px] text-white/40 font-semibold uppercase tracking-widest border-y border-white/5"
+                          >
+                            — Spread —
+                          </td>
+                        </tr>
+                      )}
+
                       {bids.map((row) => (
                         <tr
                           key={row.id}
-                          className="hover:bg-white/5 transition-colors group border-b border-gray-800/30"
+                          className="hover:bg-white/5 transition-colors group border-b border-white/5"
                         >
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 bg-[#1e2809] text-[#8faa3a] text-[10px] font-black uppercase border border-[#6b8a1e]">
+                          <td className="px-6 py-3">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                               BID
                             </span>
                           </td>
-                          <td className="p-3 text-[#8faa3a] font-bold">
+                          <td className="px-6 py-3 text-emerald-400 font-semibold">
                             {parseFloat(row.price).toFixed(3)}
                           </td>
-                          <td className="p-3 text-gray-300">
+                          <td className="px-6 py-3 text-[#A1A1AA]">
                             {parseFloat(row.amount).toFixed(2)}
                           </td>
-                          <td className="p-3 text-gray-400 text-right">
+                          <td className="px-6 py-3 text-[#A1A1AA] text-right">
                             {parseFloat(row.total).toFixed(2)}
                           </td>
-                          <td className="p-3 text-center">
+                          <td className="px-6 py-3 text-center">
                             <button
                               onClick={() => {
                                 setSide("sell");
                                 setPrice(row.price.toString());
                                 setAmount(row.amount.toString());
                               }}
-                              className="text-xs font-bold px-2 py-1 uppercase border transition-all bg-[#6b8a1e] text-white border-[#415514] hover:bg-[#415514]"
+                              className="text-[10px] font-bold px-3 py-1.5 rounded-md uppercase transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white"
                             >
                               Sell
                             </button>
@@ -444,24 +470,24 @@ export default function Exchange({ user }) {
 
           {/* My Recent Trades */}
           {myTrades.length > 0 && (
-            <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#415514]">
-              <div className="px-6 py-4 border-b-[3px] border-black bg-[#f5f7ee]">
-                <h3 className="text-lg font-black text-black uppercase flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#6b8a1e]">
+            <div className="skeuo-card rounded-2xl overflow-hidden border border-white/10 mt-2">
+              <div className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+                <h3 className="text-lg font-semibold text-white uppercase flex items-center gap-2 tracking-wide">
+                  <span className="material-symbols-outlined !text-[20px] text-white/60">
                     history
-                  </span>{" "}
+                  </span>
                   My Trades
                 </h3>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm font-mono">
+                <table className="w-full text-sm font-mono text-white/90">
                   <thead>
-                    <tr className="text-xs text-gray-500 font-bold uppercase border-b-2 border-black">
-                      <th className="p-3 text-left">Type</th>
-                      <th className="p-3 text-left">Amount</th>
-                      <th className="p-3 text-left">Price</th>
-                      <th className="p-3 text-right">Total</th>
-                      <th className="p-3 text-right">Time</th>
+                    <tr className="text-[10px] text-[#A1A1AA] font-semibold uppercase border-b border-white/5 bg-black/20 tracking-wider">
+                      <th className="px-6 py-3 text-left">Type</th>
+                      <th className="px-6 py-3 text-left">Amount</th>
+                      <th className="px-6 py-3 text-left">Price</th>
+                      <th className="px-6 py-3 text-right">Total</th>
+                      <th className="px-6 py-3 text-right">Time</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -470,25 +496,29 @@ export default function Exchange({ user }) {
                       return (
                         <tr
                           key={t.id}
-                          className="border-b border-gray-200 hover:bg-[#f5f7ee]"
+                          className="border-b border-white/5 hover:bg-white/5 transition-colors"
                         >
-                          <td className="p-3">
+                          <td className="px-6 py-3">
                             <span
-                              className={`px-2 py-0.5 text-[10px] font-black uppercase border-2 ${isBuyer ? "bg-[#d0db9f] border-[#6b8a1e] text-[#1e2809]" : "bg-red-50 border-red-400 text-red-700"}`}
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                                isBuyer
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-red-500/10 text-red-400 border-red-500/20"
+                              }`}
                             >
                               {isBuyer ? "Buy" : "Sell"}
                             </span>
                           </td>
-                          <td className="p-3 font-bold">
-                            {parseFloat(t.amount).toFixed(2)} kWh
+                          <td className="px-6 py-3 font-semibold">
+                            {parseFloat(t.amount).toFixed(2)} Units
                           </td>
-                          <td className="p-3 text-gray-600">
+                          <td className="px-6 py-3 text-[#A1A1AA]">
                             {parseFloat(t.price).toFixed(3)}
                           </td>
-                          <td className="p-3 text-right font-bold">
+                          <td className="px-6 py-3 text-right font-semibold">
                             {parseFloat(t.total).toFixed(2)} USDC
                           </td>
-                          <td className="p-3 text-right text-gray-400 text-xs">
+                          <td className="px-6 py-3 text-right text-white/40 text-[11px]">
                             {new Date(t.timestamp).toLocaleTimeString()}
                           </td>
                         </tr>
@@ -499,60 +529,132 @@ export default function Exchange({ user }) {
               </div>
             </div>
           )}
+          {/* Nearby Sellers */}
+          <div className="skeuo-card rounded-2xl overflow-hidden border border-white/10 mt-6">
+            <div className="px-6 py-5 border-b border-white/5 bg-white/[0.02]">
+              <h3 className="text-lg font-semibold text-white uppercase flex items-center gap-2 tracking-wide">
+                <span className="material-symbols-outlined !text-[20px] text-emerald-400">
+                  radar
+                </span>
+                Nearby Sellers
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm font-mono text-white/90">
+                <thead>
+                  <tr className="text-[10px] text-[#A1A1AA] font-semibold uppercase border-b border-white/5 bg-black/20 tracking-wider">
+                    <th className="px-6 py-3 text-left">Seller ID</th>
+                    <th className="px-6 py-3 text-left">Distance</th>
+                    <th className="px-6 py-3 text-left">Power Type</th>
+                    <th className="px-6 py-3 text-right">Available</th>
+                    <th className="px-6 py-3 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      id: "0x7F2...39A",
+                      dist: "1.2 km",
+                      type: "Solar",
+                      avail: "4,500",
+                    },
+                    {
+                      id: "0x99B...12C",
+                      dist: "3.4 km",
+                      type: "Wind",
+                      avail: "12,000",
+                    },
+                    {
+                      id: "0x3A1...88F",
+                      dist: "5.1 km",
+                      type: "Biogas",
+                      avail: "8,200",
+                    },
+                  ].map((s, i) => (
+                    <tr
+                      key={i}
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="px-6 py-3 font-semibold text-emerald-400">
+                        {s.id}
+                      </td>
+                      <td className="px-6 py-3 text-[#A1A1AA]">{s.dist}</td>
+                      <td className="px-6 py-3">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-white/10 text-white border border-white/20">
+                          {s.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 text-right font-semibold">
+                        {s.avail} Units
+                      </td>
+                      <td className="px-6 py-3 text-center">
+                        <button className="text-[10px] font-bold px-3 py-1.5 rounded-md uppercase transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white">
+                          Connect
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
         {/* Right: Terminal / Order Form */}
-        <div className="lg:col-span-5">
-          <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#415514] sticky top-24">
-            <div className="bg-[#1e2809] p-4 flex items-center justify-between border-b-[3px] border-black">
-              <h3 className="text-xl font-black text-white uppercase flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#8faa3a]">
+        <div className="lg:col-span-5 xl:col-span-4">
+          <div className="skeuo-card rounded-2xl overflow-hidden border border-white/10 sticky top-28 shadow-2xl flex flex-col h-full max-h-[800px]">
+            <div className="bg-[#111] px-6 py-5 flex items-center justify-between border-b border-white/5">
+              <h3 className="text-lg font-semibold text-white uppercase flex items-center gap-2 tracking-wide">
+                <span className="material-symbols-outlined !text-[20px] text-emerald-400">
                   terminal
-                </span>{" "}
-                Terminal
+                </span>
+                Trade Terminal
               </h3>
-              <div className="flex items-center gap-2 bg-[#6b8a1e]/20 px-3 py-1 border border-[#6b8a1e]/40">
-                <span className="size-2 rounded-full bg-[#8faa3a] animate-pulse" />
-                <span className="text-xs text-[#8faa3a] font-mono uppercase">
-                  Sepolia Testnet
+              <div className="flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-md border border-white/10">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-[pulse_2s_infinite]" />
+                <span className="text-[10px] text-white/70 font-mono uppercase font-semibold">
+                  Testnet
                 </span>
               </div>
             </div>
-            <div className="p-6">
+
+            <div className="p-6 flex-grow flex flex-col bg-[#0A0A0A]">
               {/* Buy/Sell toggle */}
-              <div className="grid grid-cols-2 gap-0 mb-8 border-2 border-black bg-black p-1 shadow-[2px_2px_0px_0px_#000]">
+              <div className="flex rounded-xl bg-black border border-white/10 p-1 mb-8">
                 {["buy", "sell"].map((s) => (
                   <button
                     key={s}
                     onClick={() => setSide(s)}
-                    className={`py-3 text-sm font-bold uppercase tracking-wider transition-all ${
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-all rounded-lg ${
                       side === s
-                        ? "bg-[#6b8a1e] text-white border border-[#415514] shadow-[2px_2px_0px_0px_#1e2809] -translate-y-1 -translate-x-1 relative z-10"
-                        : "text-gray-400 hover:text-white"
+                        ? "bg-white/10 text-white shadow-sm"
+                        : "text-[#A1A1AA] hover:text-white hover:bg-white/5"
                     }`}
                   >
-                    {s === "buy" ? "🌿 Buy" : "⚡ Sell"}
+                    {s === "buy" ? "Buy" : "Sell"}
                   </button>
                 ))}
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-6 flex-grow flex flex-col">
                 {/* Order type */}
-                <div className="flex gap-6 border-b-2 border-black pb-4">
+                <div className="flex gap-6 border-b border-white/10 pb-4">
                   {["Limit", "Market"].map((t, i) => (
                     <label
                       key={t}
                       className={`flex items-center gap-2 cursor-pointer group ${i === 1 ? "opacity-50 hover:opacity-100" : ""}`}
                     >
                       <div
-                        className={`w-4 h-4 border-2 border-black flex items-center justify-center ${i === 0 ? "bg-[#6b8a1e]" : ""}`}
+                        className={`w-4 h-4 rounded-full border border-white/30 flex items-center justify-center transition-colors ${i === 0 ? "bg-white/20 border-white/50" : ""}`}
                         onClick={() =>
                           setOrderType(i === 0 ? "limit" : "market")
                         }
                       >
-                        {i === 0 && <div className="w-2 h-2 bg-white" />}
+                        {i === 0 && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        )}
                       </div>
-                      <span className="text-sm font-bold text-black uppercase group-hover:underline">
+                      <span className="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider group-hover:text-white transition-colors">
                         {t}
                       </span>
                     </label>
@@ -561,17 +663,19 @@ export default function Exchange({ user }) {
 
                 {/* Price input */}
                 <div>
-                  <label className="block text-xs font-black uppercase text-black mb-2 tracking-wide">
-                    Price (USDC)
-                  </label>
-                  <div className="relative">
+                  <div className="flex justify-between items-end mb-2">
+                    <label className="text-[10px] font-semibold uppercase text-[#A1A1AA] tracking-widest">
+                      Price
+                    </label>
+                  </div>
+                  <div className="relative group">
                     <input
                       type="number"
                       value={price}
                       onChange={(e) => setPrice(e.target.value)}
-                      className="w-full bg-white border-[3px] border-black text-black p-4 font-mono text-xl focus:ring-0 focus:outline-none focus:border-[#6b8a1e] placeholder-gray-300"
+                      className="w-full bg-[#111] border border-white/10 rounded-xl text-white p-4 font-mono text-xl focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 placeholder-white/20 transition-all shadow-inner"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-black text-sm font-bold bg-[#d0db9f] px-2 py-1 border border-[#6b8a1e]">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/50 bg-white/5 rounded px-2 py-1 uppercase tracking-wider group-focus-within:text-white/80 transition-colors">
                       USDC
                     </span>
                   </div>
@@ -579,28 +683,39 @@ export default function Exchange({ user }) {
 
                 {/* Amount input */}
                 <div>
-                  <label className="block text-xs font-black uppercase text-black mb-2 tracking-wide">
-                    Amount (kWh)
-                  </label>
-                  <div className="relative">
+                  <div className="flex justify-between items-end mb-2">
+                    <label className="text-[10px] font-semibold uppercase text-[#A1A1AA] tracking-widest">
+                      Amount
+                    </label>
+                    <span className="text-[10px] font-mono text-white/40">
+                      Max: {balance.toLocaleString()} FAL
+                    </span>
+                  </div>
+                  <div className="relative group">
                     <input
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-white border-[3px] border-black text-black p-4 font-mono text-xl focus:ring-0 focus:outline-none focus:border-[#6b8a1e] placeholder-gray-300"
+                      className="w-full bg-[#111] border border-white/10 rounded-xl text-white p-4 font-mono text-xl focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 placeholder-white/20 transition-all shadow-inner"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-black text-sm font-bold bg-[#d0db9f] px-2 py-1 border border-[#6b8a1e]">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/50 bg-white/5 rounded px-2 py-1 uppercase tracking-wider group-focus-within:text-white/80 transition-colors">
                       FAL
                     </span>
                   </div>
                   <div className="flex gap-2 mt-3">
-                    {["25%", "50%", "75%", "100%"].map((p) => (
+                    {["25%", "50%", "75%", "Max"].map((p) => (
                       <button
                         key={p}
                         onClick={() => {
                           if (!price || balance <= 0) return;
-                          const pct = parseFloat(p) / 100;
+
+                          let pct = 0;
+                          if (p === "25%") pct = 0.25;
+                          if (p === "50%") pct = 0.5;
+                          if (p === "75%") pct = 0.75;
+                          if (p === "Max") pct = 1;
+
                           if (side === "buy")
                             setAmount(
                               (
@@ -610,7 +725,7 @@ export default function Exchange({ user }) {
                             );
                           else setAmount((balance * pct).toFixed(2));
                         }}
-                        className="flex-1 bg-[#f5f7ee] hover:bg-[#6b8a1e] hover:text-white text-xs text-black py-2 font-bold border-2 border-black transition-all"
+                        className="flex-1 bg-white/5 hover:bg-white/10 rounded-lg text-[10px] text-white/70 hover:text-white py-1.5 font-semibold transition-colors border border-white/5"
                       >
                         {p}
                       </button>
@@ -619,22 +734,25 @@ export default function Exchange({ user }) {
                 </div>
 
                 {/* Summary */}
-                <div className="p-4 border-2 border-dashed border-[#8faa3a] bg-[#f5f7ee]">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-black font-bold uppercase">
+                <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] mt-auto">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-[10px] text-[#A1A1AA] font-semibold uppercase tracking-wider">
                       Est. Total
                     </span>
-                    <span className="text-lg font-black text-black font-mono">
+                    <span className="text-lg font-bold text-white font-mono">
                       {amount && price
-                        ? `${(parseFloat(amount || 0) * parseFloat(price || 0)).toFixed(2)} USDC`
-                        : "0.00 USDC"}
+                        ? `${(parseFloat(amount || 0) * parseFloat(price || 0)).toFixed(2)}`
+                        : "0.00"}{" "}
+                      <span className="text-[10px] text-white/50 font-sans tracking-wide">
+                        USDC
+                      </span>
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500 font-bold uppercase">
-                      Fees (0.1%)
+                  <div className="flex justify-between items-center pt-3 border-t border-white/5">
+                    <span className="text-[10px] text-[#A1A1AA] font-semibold uppercase tracking-wider">
+                      Network Fee
                     </span>
-                    <span className="text-xs text-gray-500 font-mono">
+                    <span className="text-[11px] text-white/50 font-mono">
                       {amount && price
                         ? `${(parseFloat(amount || 0) * parseFloat(price || 0) * 0.001).toFixed(4)} USDC`
                         : "0.0000 USDC"}
@@ -645,29 +763,22 @@ export default function Exchange({ user }) {
                 <button
                   onClick={handleExecute}
                   disabled={submitting}
-                  className={`w-full font-black uppercase text-xl py-4 border-[3px] border-black shadow-[4px_4px_0px_0px_#415514] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all flex items-center justify-center gap-3 ${
+                  className={`w-full skeuo-button mt-4 rounded-xl font-bold uppercase tracking-widest text-[13px] py-4 transition-all flex items-center justify-center gap-2 ${
                     submitting
-                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : side === "buy"
-                        ? "bg-[#6b8a1e] text-white hover:bg-[#415514]"
-                        : "bg-[#1e2809] text-[#8faa3a] hover:bg-[#415514] hover:text-white"
+                      ? "opacity-50 cursor-not-allowed"
+                      : "text-white hover:text-white"
                   }`}
                 >
                   {submitting ? (
                     <>
-                      <span className="material-symbols-outlined animate-spin">
+                      <span className="material-symbols-outlined !text-[18px] animate-spin">
                         progress_activity
-                      </span>{" "}
-                      Processing…
+                      </span>
+                      Processing
                     </>
                   ) : (
                     <>
-                      <span>
-                        {side === "buy" ? "Buy Energy" : "Sell Energy"}
-                      </span>
-                      <span className="material-symbols-outlined font-black">
-                        arrow_forward
-                      </span>
+                      <span>Place {side === "buy" ? "Buy" : "Sell"} Order</span>
                     </>
                   )}
                 </button>

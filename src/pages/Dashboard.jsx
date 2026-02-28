@@ -1,418 +1,566 @@
-// Dashboard — faltric_ai_energy_dashboard design — Olive Green neobrutalist theme
+import React from "react";
+import { Link } from "react-router-dom";
 
 export default function Dashboard({ user }) {
   return (
-    <main className="flex-1 w-full max-w-7xl mx-auto p-6 md:p-10 flex flex-col gap-10">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-end gap-6">
-        <div>
-          <div className="flex items-center gap-4 mb-2">
-            <h2 className="text-4xl font-black uppercase tracking-tight">
-              System Overview
-            </h2>
-            <span className="px-3 py-1 bg-white border-[3px] border-black text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-[2px_2px_0px_0px_#000]">
-              <span className="w-2 h-2 bg-[#6b8a1e] rounded-full animate-pulse" />
-              Live Grid
-            </span>
-          </div>
-          {user?.name && (
-            <p className="text-[#6b8a1e] font-bold text-sm uppercase tracking-wide border-l-4 border-[#6b8a1e] pl-3">
-              Welcome, {user.name} ·{" "}
-              {(user.token_balance ?? 0).toLocaleString()} FAL balance
-            </p>
-          )}
-          <p className="text-gray-600 font-medium text-lg border-l-4 border-black pl-4 mt-2">
-            Real-time analysis of renewable energy inputs.
-          </p>
-        </div>
-        <button className="px-6 py-2 font-bold flex items-center gap-2 bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#415514] hover:bg-[#6b8a1e] hover:text-white hover:border-[#415514] transition-all group">
-          <span
-            className="material-symbols-outlined"
-            style={{ fontSize: "18px" }}
-          >
-            download
-          </span>
-          Export Report
-        </button>
-      </div>
+    <div className="bg-white text-[#111811] font-display antialiased overflow-x-hidden selection:bg-black selection:text-white">
+      <style>{`
+        .bg-grid-pattern {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, #e5e5e5 1px, transparent 1px),
+                linear-gradient(to bottom, #e5e5e5 1px, transparent 1px);
+        }
+        .bg-grid-pattern-dark {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, #333333 1px, transparent 1px),
+                linear-gradient(to bottom, #333333 1px, transparent 1px);
+        }
+        .animate-marquee {
+            animation: marquee 25s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .text-stroke-black {
+            -webkit-text-stroke: 2px black;
+            color: transparent;
+        }
+        .text-stroke-white {
+            -webkit-text-stroke: 2px white;
+            color: transparent;
+        }
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .font-body {
+            font-family: 'Noto Sans', sans-serif;
+        }
+      `}</style>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {[
-          {
-            label: "Solar",
-            value: "45.2",
-            unit: "kWh",
-            change: "+12%",
-            icon: "sunny",
-            bg: "bg-white",
-          },
-          {
-            label: "Wind",
-            value: "12.8",
-            unit: "kWh",
-            change: "+5%",
-            icon: "air",
-            bg: "bg-white",
-          },
-          {
-            label: "Biogas",
-            value: "8.4",
-            unit: "kWh",
-            change: "-2%",
-            icon: "local_fire_department",
-            bg: "bg-white",
-          },
-          {
-            label: "Grid Load",
-            value: "62%",
-            unit: "",
-            change: "Optimal",
-            icon: "speed",
-            bg: "bg-[#1e2809] text-white",
-            dark: true,
-          },
-        ].map(({ label, value, unit, change, icon, bg, dark }) => (
-          <div
-            key={label}
-            className={`${bg} p-6 relative overflow-hidden group border-[3px] border-black shadow-[6px_6px_0px_0px_#415514] hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_#415514] transition-all`}
-          >
-            <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "7rem" }}
-              >
-                {icon}
-              </span>
+      <main className="flex-grow" >
+        <section className="relative border-b-2 border-black bg-white bg-grid-pattern">
+          <div className="mx-auto grid max-w-[1440px] grid-cols-1 md:grid-cols-12 min-h-[700px]">
+            <div className="flex flex-col justify-center border-b-2 border-black p-8 md:col-span-8 md:border-b-0 md:border-r-2 md:p-16 lg:p-24 relative overflow-hidden">
+              <div className="mb-8 mt-15 inline-flex w-fit items-center gap-2 border-2 border-black bg-black px-4 py-1 text-xs font-bold uppercase text-white shadow-[4px_4px_0px_0px_#000000]">
+                <span className="material-symbols-outlined text-sm animate-pulse">
+                  radio_button_checked
+                </span>
+                <span>Protocol v2.0 Live</span>
+              </div>
+              <h1 className="mb-8 text-7xl font-black uppercase leading-[0.85] tracking-tight md:text-8xl lg:text-9xl z-10">
+                Energy
+                <br />
+                <span className="text-stroke-black" style={{fontSize:"100px"}}>Decentralized</span>
+              </h1>
+              <p className="mb-10 max-w-lg text-xl font-medium leading-relaxed font-body text-neutral-800 z-10">
+                The centralized grid is failing. Faltric enables peer-to-peer
+                energy trading, turning consumers into producers.
+              </p>
+              <div className="flex flex-wrap gap-4 z-10">
+                <Link
+                  to="/exchange"
+                  className="h-14 min-w-[200px] border-2 border-black bg-black px-8 text-base font-bold uppercase tracking-wide text-white shadow-[4px_4px_0px_0px_#000000] transition-all hover:bg-neutral-800 hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined">
+                    account_balance_wallet
+                  </span>
+                  Exchange
+                </Link>
+                <button className="flex h-14 min-w-[180px] items-center justify-center gap-2 border-2 border-black bg-white px-8 text-base font-bold uppercase tracking-wide shadow-[4px_4px_0px_0px_#000000] transition-all hover:bg-neutral-50 hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none">
+                  Read Manifesto
+                </button>
+              </div>
             </div>
-            <div className="relative z-10">
-              <div className="flex justify-between items-start mb-4">
-                <h4
-                  className={`font-bold uppercase text-sm tracking-widest border-b-2 pb-1 ${dark ? "border-[#6b8a1e]" : "border-black"}`}
-                >
-                  {label}
-                </h4>
-                <span
-                  className={`px-2 py-0.5 text-xs font-bold border-2 ${dark ? "border-[#6b8a1e] text-[#8faa3a] bg-[#2f3e0f]" : "border-black bg-[#d0db9f] text-[#1e2809]"}`}
-                >
-                  {change}
+            <div className="relative flex flex-col md:col-span-4 bg-neutral-100">
+              <div
+                className="relative h-full w-full min-h-[300px] bg-cover bg-center"
+                style={{
+                  backgroundImage:
+                    "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDwj8uT-gVheKRMkE8UlSk8hQ24QbHra4caHkaMOQlbtwW7tsz6R_wPEXpcCsxv5U6MyY5xF3mAzG8_lVlSClKGmvk4PhO_UUo71_Y406ylzA3h2-5JuGmfGamt9duLIe3tpIRNMEc27gYNeqbLFAhMzn_EjMm-9hFCGrD6kcxadcGNIkARyLxuut7hMCERCT5WBl8iVLKO39TMrtWObaU_F_-Get7xqVEf7FilmPPXrZFb9eZBLxrDLQtcDNu2ovQuNEScr8A4tE0')",
+                  filter: "grayscale(100%) contrast(140%) brightness(90%)",
+                }}
+              >
+                <div className="absolute inset-0 bg-black/20"></div>
+                <div className="absolute top-6 right-6 border-2 border-black bg-white p-3 shadow-[4px_4px_0px_0px_#000000]">
+                  <span className="material-symbols-outlined text-4xl">
+                    sunny
+                  </span>
+                </div>
+                <div className="absolute bottom-0 left-0 w-full border-t-2 border-black bg-white p-6">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-xs font-bold uppercase text-gray-500 mb-1">
+                        Grid Load
+                      </p>
+                      <p className="text-3xl font-black">42.8 GW</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold uppercase text-gray-500 mb-1">
+                        Status
+                      </p>
+                      <div className="flex items-center gap-2 justify-end">
+                        <div className="h-3 w-3 bg-green-500 border-2 border-black"></div>
+                        <span className="font-bold">Stable</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b-2 border-black bg-black text-white bg-grid-pattern-dark relative overflow-hidden">
+          <div className="mx-auto max-w-[1440px] grid grid-cols-1 lg:grid-cols-12 min-h-[600px]">
+            <div className="lg:col-span-5 border-b-2 border-white lg:border-b-0 lg:border-r-2 lg:border-white p-12 lg:p-20 flex flex-col justify-center relative">
+              <h2 className="text-6xl md:text-7xl font-black uppercase mb-8 leading-[0.9]">
+                The
+                <br />
+                <span className="text-stroke-white">Problem</span>
+              </h2>
+              <p className="text-xl font-body text-gray-400 max-w-md">
+                Centralized power grids are aging, inefficient, and prone to
+                catastrophic failure. Relying on a single point of failure is no
+                longer an option.
+              </p>
+              <div className="absolute -bottom-12 -left-12 opacity-10">
+                <span className="material-symbols-outlined text-[300px]">
+                  warning
                 </span>
               </div>
-              <div className="flex items-baseline gap-2 mt-2">
-                <span className="text-5xl font-black">{value}</span>
-                {unit && (
-                  <span
-                    className={`text-sm font-bold uppercase ${dark ? "text-[#6b8a1e]" : "text-gray-600"}`}
-                  >
-                    {unit}
+            </div>
+            <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-2">
+              <div className="border-b-2 border-white md:border-r-2 md:border-white p-10 flex flex-col justify-between hover:bg-neutral-900 transition-colors">
+                <span className="material-symbols-outlined text-5xl mb-6">
+                  power_off
+                </span>
+                <div>
+                  <h3 className="text-4xl font-bold mb-2">350%</h3>
+                  <p className="font-mono text-sm uppercase text-gray-400">
+                    Increase in blackouts since 2015
+                  </p>
+                </div>
+              </div>
+              <div className="border-b-2 border-white p-10 flex flex-col justify-between hover:bg-neutral-900 transition-colors">
+                <span className="material-symbols-outlined text-5xl mb-6">
+                  payments
+                </span>
+                <div>
+                  <h3 className="text-4xl font-bold mb-2">30%</h3>
+                  <p className="font-mono text-sm uppercase text-gray-400">
+                    Energy lost in transmission
+                  </p>
+                </div>
+              </div>
+              <div className="border-b-2 md:border-b-0 border-white md:border-r-2 md:border-white p-10 flex flex-col justify-between hover:bg-neutral-900 transition-colors">
+                <span className="material-symbols-outlined text-5xl mb-6">
+                  co2
+                </span>
+                <div>
+                  <h3 className="text-4xl font-bold mb-2">40GT</h3>
+                  <p className="font-mono text-sm uppercase text-gray-400">
+                    Annual CO2 Emissions
+                  </p>
+                </div>
+              </div>
+              <div className="p-10 flex flex-col justify-between hover:bg-neutral-900 transition-colors">
+                <span className="material-symbols-outlined text-5xl mb-6">
+                  lock
+                </span>
+                <div>
+                  <h3 className="text-4xl font-bold mb-2">0</h3>
+                  <p className="font-mono text-sm uppercase text-gray-400">
+                    Control over your pricing
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b-2 border-black bg-white py-24 lg:py-32">
+          <div className="mx-auto max-w-[1440px] px-6 lg:px-12">
+            <div className="mb-20">
+              <div className="inline-block border-2 border-black bg-white px-3 py-1 text-xs font-bold uppercase mb-6 shadow-[4px_4px_0px_0px_#000000]">
+                Solution
+              </div>
+              <h2 className="text-5xl md:text-7xl font-black uppercase leading-none">
+                Why Faltric?
+              </h2>
+            </div>
+            <div className="grid gap-8 lg:grid-cols-3">
+              <div className="group relative border-2 border-black bg-white p-8 shadow-[4px_4px_0px_0px_#000000] transition-all hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_#000]">
+                <div className="mb-8 flex justify-between items-start">
+                  <span className="text-6xl font-black text-neutral-200 group-hover:text-black transition-colors">
+                    01
                   </span>
-                )}
-              </div>
-              <div
-                className={`w-full h-4 mt-6 border-[3px] p-0.5 ${dark ? "bg-[#2f3e0f] border-[#6b8a1e]" : "bg-[#f5f7ee] border-black"}`}
-              >
-                <div
-                  className={`h-full ${dark ? "bg-[#6b8a1e]" : "bg-black"}`}
-                  style={{
-                    width: `${label === "Solar" ? 75 : label === "Wind" ? 45 : label === "Biogas" ? 30 : 62}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Chart + sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* AI Prediction chart */}
-        <div className="lg:col-span-2 bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_#415514] flex flex-col min-h-[400px]">
-          <div className="p-6 border-b-[3px] border-black flex justify-between items-center bg-[#f5f7ee]">
-            <h3 className="text-xl font-black flex items-center gap-2 uppercase">
-              <span
-                className="material-symbols-outlined text-[#6b8a1e]"
-                style={{ fontSize: "28px" }}
-              >
-                psychology
-              </span>
-              AI Prediction vs Actual
-            </h3>
-            <div className="flex gap-2">
-              {["24H", "7D", "30D"].map((t, i) => (
-                <button
-                  key={t}
-                  className={`px-4 py-1 text-xs font-bold border-2 border-black transition-colors ${i === 1 ? "bg-[#6b8a1e] text-white border-[#415514]" : "bg-white hover:bg-[#6b8a1e] hover:text-white hover:border-[#415514]"}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="p-8 flex-1 bg-white relative">
-            <svg
-              className="w-full h-48 overflow-visible"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
-              <path
-                d="M0,80 C10,75 20,60 30,50 C40,40 50,45 60,30 C70,15 80,25 90,40 C95,45 100,50 100,50"
-                fill="none"
-                stroke="#d0db9f"
-                strokeDasharray="3,3"
-                strokeWidth="2"
-                vectorEffect="non-scaling-stroke"
-              />
-              <path
-                d="M0,85 C10,80 20,65 30,55 C40,58 50,48 60,35 C70,40 80,30 90,45 C95,50 100,55 100,55"
-                fill="none"
-                stroke="#6b8a1e"
-                strokeWidth="3"
-                vectorEffect="non-scaling-stroke"
-              />
-              {[
-                [60, 35],
-                [90, 45],
-              ].map(([cx, cy]) => (
-                <circle
-                  key={`${cx}${cy}`}
-                  cx={cx}
-                  cy={cy}
-                  r="3"
-                  fill="#fff"
-                  stroke="#415514"
-                  strokeWidth="2"
-                />
-              ))}
-            </svg>
-            <div className="flex justify-between mt-4 text-xs font-bold font-mono border-t-2 border-black pt-2">
-              {[
-                "00:00",
-                "04:00",
-                "08:00",
-                "12:00",
-                "16:00",
-                "20:00",
-                "23:59",
-              ].map((t) => (
-                <span key={t}>{t}</span>
-              ))}
-            </div>
-          </div>
-          <div className="px-6 py-4 border-t-[3px] border-black bg-[#f5f7ee] flex gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-1 border-b-2 border-dashed border-[#8faa3a]" />
-              <span className="text-sm font-bold uppercase">AI Prediction</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-1 bg-[#6b8a1e]" />
-              <span className="text-sm font-bold uppercase">
-                Actual Generation
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Weather + efficiency */}
-        <div className="flex flex-col gap-8">
-          <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_#415514] p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-black text-xl uppercase">India, IN</h4>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">
-                  Local Weather
+                  <div className="h-12 w-12 border-2 border-black bg-black text-white flex items-center justify-center">
+                    <span className="material-symbols-outlined text-2xl">
+                      sync_alt
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold uppercase mb-4">
+                  P2P Trading
+                </h3>
+                <p className="font-sans text-gray-600 leading-relaxed">
+                  Buy and sell excess energy directly with your neighbors.
+                  Remove the middleman utility company and set your own rates.
                 </p>
               </div>
-              <span
-                className="material-symbols-outlined text-[#6b8a1e]"
-                style={{ fontSize: "48px" }}
+              <div className="group relative border-2 border-black bg-black text-white p-8 shadow-[4px_4px_0px_0px_#000000] transition-all hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_#000]">
+                <div className="mb-8 flex justify-between items-start">
+                  <span className="text-6xl font-black text-neutral-700 group-hover:text-white transition-colors">
+                    02
+                  </span>
+                  <div className="h-12 w-12 border-2 border-white bg-white text-black flex items-center justify-center">
+                    <span className="material-symbols-outlined text-2xl">
+                      visibility
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold uppercase mb-4">
+                  Total Transparency
+                </h3>
+                <p className="font-body text-gray-300 leading-relaxed">
+                  Every electron is tracked on-chain. Audit your usage, verify
+                  the source of your power, and trust the immutable ledger.
+                </p>
+              </div>
+              <div className="group relative border-2 border-black bg-white p-8 shadow-[4px_4px_0px_0px_#000000] transition-all hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_#000]">
+                <div className="mb-8 flex justify-between items-start">
+                  <span className="text-6xl font-black text-neutral-200 group-hover:text-black transition-colors">
+                    03
+                  </span>
+                  <div className="h-12 w-12 border-2 border-black bg-black text-white flex items-center justify-center">
+                    <span className="material-symbols-outlined text-2xl">
+                      forest
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold uppercase mb-4">
+                  Carbon Tracking
+                </h3>
+                <p className="font-sans text-gray-600 leading-relaxed">
+                  Real-time carbon intensity monitoring. Optimize your
+                  consumption for the greenest hours automatically.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b-2 border-black">
+          <div className="grid grid-cols-1 lg:grid-cols-2">
+            <div className="border-b-2 lg:border-b-0 lg:border-r-2 border-black bg-neutral-100 p-12 lg:p-24 flex items-center justify-center">
+              <div className="w-full max-w-md border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000000]">
+                <div className="border-b-2 border-black bg-black p-2 flex justify-between items-center px-4">
+                  <span className="text-white font-mono text-xs">
+                    TERMINAL_V1.EXE
+                  </span>
+                  <div className="flex gap-2">
+                    <div className="h-3 w-3 bg-white rounded-none"></div>
+                    <div className="h-3 w-3 bg-white rounded-none"></div>
+                  </div>
+                </div>
+                <div className="p-6 font-mono text-sm space-y-4">
+                  <div className="flex justify-between border-b border-gray-200 pb-2">
+                    <span className="font-bold">PAIR</span>
+                    <span className="font-bold">PRICE (FLT)</span>
+                  </div>
+                  <div className="flex justify-between text-green-700">
+                    <span>SOLAR/GRID</span>
+                    <span>0.42 ▲</span>
+                  </div>
+                  <div className="flex justify-between text-red-600">
+                    <span>WIND/GRID</span>
+                    <span>0.38 ▼</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>STORAGE/GRID</span>
+                    <span>0.55 -</span>
+                  </div>
+                  <div className="pt-4 mt-4 border-t-2 border-black">
+                    <button className="w-full bg-black text-white py-2 font-bold hover:bg-gray-800">
+                      EXECUTE TRADE
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="p-12 lg:p-24 flex flex-col justify-center bg-white">
+              <span className="font-mono text-sm font-bold text-gray-500 mb-2">
+                01 — INTERFACE
+              </span>
+              <h3 className="text-4xl md:text-5xl font-black uppercase mb-6">
+                Exchange Terminal
+              </h3>
+              <p className="text-lg font-body text-gray-800 mb-8">
+                A professional-grade trading environment for energy assets. Set
+                limit orders for your solar production or automate purchases
+                based on spot prices.
+              </p>
+              <ul className="space-y-4 font-bold uppercase text-sm">
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-xl">
+                    check_box
+                  </span>
+                  Real-time Order Book
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-xl">
+                    check_box
+                  </span>
+                  Automated Market Making
+                </li>
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-xl">
+                    check_box
+                  </span>
+                  Instant Settlement
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 border-t-2 border-black">
+            <div className="order-2 lg:order-1 p-12 lg:p-24 flex flex-col justify-center bg-black text-white">
+              <span className="font-mono text-sm font-bold text-gray-400 mb-2">
+                02 — INTELLIGENCE
+              </span>
+              <h3 className="text-4xl md:text-5xl font-black uppercase mb-6">
+                Predict AI
+              </h3>
+              <p className="text-lg font-body text-gray-300 mb-8">
+                Machine learning models that forecast local energy production
+                and consumption patterns. Optimize your battery storage
+                automatically to sell at peak rates.
+              </p>
+              <Link
+                to="/ai-dashboard"
+                className="w-fit border-2 border-white px-6 py-3 font-bold uppercase hover:bg-white hover:text-black transition-colors shadow-[4px_4px_0px_0px_#ffffff] active:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
               >
-                partly_cloudy_day
+                View Documentation
+              </Link>
+            </div>
+            <div className="order-1 lg:order-2 border-b-2 lg:border-b-0 lg:border-l-2 border-black bg-neutral-100 p-12 lg:p-24 flex items-center justify-center">
+              <div className="w-full max-w-md aspect-square border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000000] p-8 flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-black"></div>
+                <div className="flex justify-between items-end mb-8">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-gray-500">
+                      Prediction Confidence
+                    </p>
+                    <p className="text-4xl font-black">98.4%</p>
+                  </div>
+                  <span className="material-symbols-outlined text-4xl animate-pulse">
+                    auto_awesome
+                  </span>
+                </div>
+                <div className="flex items-end justify-between h-32 gap-2">
+                  <div className="w-full bg-gray-200 h-[40%]"></div>
+                  <div className="w-full bg-gray-300 h-[60%]"></div>
+                  <div className="w-full bg-black h-[80%] relative group">
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 hidden group-hover:block">
+                      PEAK
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-300 h-[50%]"></div>
+                  <div className="w-full bg-gray-200 h-[30%]"></div>
+                </div>
+                <p className="text-xs font-mono mt-4 text-center text-gray-500">
+                  HOURLY DEMAND FORECAST
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="w-full border-b-2 border-black bg-white py-4 overflow-hidden whitespace-nowrap">
+          <div className="inline-block animate-marquee">
+            <span className="mx-8 font-mono text-lg font-bold uppercase tracking-wide">
+              <span className="text-green-600 mr-2">●</span> ACTIVE NODES:
+              12,405
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-blue-600 mr-2">●</span> BLOCK HEIGHT:
+              #8,992,102
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-orange-600 mr-2">●</span> KW/H PRICE: $0.12
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-purple-600 mr-2">●</span> TOTAL STAKED: $45M
+              <span className="mx-8 text-gray-300">|</span>
+            </span>
+            <span className="mx-8 font-mono text-lg font-bold uppercase tracking-wide">
+              <span className="text-green-600 mr-2">●</span> ACTIVE NODES:
+              12,405
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-blue-600 mr-2">●</span> BLOCK HEIGHT:
+              #8,992,102
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-orange-600 mr-2">●</span> KW/H PRICE: $0.12
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-purple-600 mr-2">●</span> TOTAL STAKED: $45M
+              <span className="mx-8 text-gray-300">|</span>
+            </span>
+            <span className="mx-8 font-mono text-lg font-bold uppercase tracking-wide">
+              <span className="text-green-600 mr-2">●</span> ACTIVE NODES:
+              12,405
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-blue-600 mr-2">●</span> BLOCK HEIGHT:
+              #8,992,102
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-orange-600 mr-2">●</span> KW/H PRICE: $0.12
+              <span className="mx-8 text-gray-300">|</span>
+              <span className="text-purple-600 mr-2">●</span> TOTAL STAKED: $45M
+              <span className="mx-8 text-gray-300">|</span>
+            </span>
+          </div>
+        </div>
+
+        <section className="bg-white py-32 relative overflow-hidden bg-grid-pattern">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-neutral-100 border-l-2 border-b-2 border-black -z-0"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black -z-0"></div>
+          <div className="container mx-auto max-w-5xl px-6 text-center relative z-10">
+            <div className="mb-10 inline-flex flex-col items-center">
+              <div className="h-16 w-1 border-l-2 border-black border-dashed mb-4"></div>
+              <span className="material-symbols-outlined text-4xl mb-4">
+                power
               </span>
             </div>
-            <div className="my-6 border-y-[3px] border-black py-4">
-              <p className="text-6xl font-black">28°C</p>
-              <div className="flex gap-4 mt-2 font-mono text-sm font-bold">
-                <span>W: 18 km/h</span>
-                <span>H: 62%</span>
-              </div>
+            <h2 className="mb-8 text-6xl font-black uppercase leading-[0.9] md:text-8xl">
+              Join The
+              <br />
+              Network
+            </h2>
+            <p className="mx-auto mb-12 max-w-2xl text-xl font-medium font-body text-gray-800 leading-relaxed">
+              The grid is yours. Connect your wallet, register as a validator
+              node, and start earning from the decentralized energy revolution.
+            </p>
+            <div className="flex flex-col items-center justify-center gap-6 sm:flex-row">
+              <button className="group relative h-20 min-w-[280px] border-2 border-black bg-[#111811] text-white px-8 text-xl font-bold uppercase tracking-wide shadow-[4px_4px_0px_0px_#000000] transition-all hover:bg-white hover:text-black hover:shadow-[2px_2px_0px_0px_#000000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none overflow-hidden">
+                <span className="relative z-10">Launch App</span>
+                <div className="absolute inset-0 h-full w-full bg-white translate-y-full transition-transform duration-300 group-hover:translate-y-0"></div>
+                <span className="absolute inset-0 z-10 flex items-center justify-center text-black opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  Launch App
+                </span>
+              </button>
+              <a
+                className="group flex h-20 min-w-[280px] items-center justify-center gap-2 border-2 border-black bg-white px-8 text-lg font-bold uppercase tracking-wide shadow-[4px_4px_0px_0px_#000000] hover:shadow-[2px_2px_0px_0px_#000000] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none"
+                href="#"
+              >
+                <span className="material-symbols-outlined text-2xl">
+                  description
+                </span>
+                Documentation
+              </a>
             </div>
-            <div className="grid grid-cols-4 gap-2 text-center">
-              {[
-                { d: "Mon", i: "sunny", t: "31°" },
-                { d: "Tue", i: "cloud", t: "29°" },
-                { d: "Wed", i: "thunderstorm", t: "25°", a: true },
-                { d: "Thu", i: "sunny", t: "32°" },
-              ].map(({ d, i, t, a }) => (
-                <div
-                  key={d}
-                  className={`flex flex-col items-center gap-1 p-2 border-2 transition-all ${a ? "bg-[#6b8a1e] text-white border-[#415514]" : "border-transparent hover:border-black"}`}
-                >
-                  <span className="font-bold text-xs">{d}</span>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "16px" }}
-                  >
-                    {i}
-                  </span>
-                  <span className="font-mono text-xs">{t}</span>
-                </div>
-              ))}
-            </div>
+            <p className="mt-8 text-sm font-mono text-gray-500">
+              NO CREDIT CARD REQUIRED • WEB3 NATIVE
+            </p>
           </div>
-          <div className="bg-[#1e2809] text-white border-[3px] border-black shadow-[6px_6px_0px_0px_#415514] p-6">
-            <h4 className="font-bold uppercase text-sm mb-6 border-b-2 border-[#6b8a1e] pb-2">
-              System Efficiency
-            </h4>
-            <div className="flex items-center justify-center relative h-36 mb-4">
-              <svg className="w-36 h-36 transform -rotate-90">
-                <circle
-                  className="text-[#2f3e0f]"
-                  cx="72"
-                  cy="72"
-                  r="60"
-                  fill="transparent"
-                  stroke="currentColor"
-                  strokeWidth="16"
-                />
-                <circle
-                  className="text-[#6b8a1e]"
-                  cx="72"
-                  cy="72"
-                  r="60"
-                  fill="transparent"
-                  stroke="currentColor"
-                  strokeDasharray="376.99"
-                  strokeDashoffset="37.69"
-                  strokeWidth="16"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-black">92%</span>
-                <span className="text-xs font-bold bg-[#6b8a1e] text-white px-2 py-0.5 mt-1 border border-[#8faa3a]">
-                  Excellent
+        </section>
+      </main>
+
+      <footer className="border-t-2 border-black bg-black text-white">
+        <div className="mx-auto max-w-[1440px] px-6 py-16 lg:px-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 bg-white text-black flex items-center justify-center">
+                  <span className="material-symbols-outlined text-xl">
+                    bolt
+                  </span>
+                </div>
+                <span className="text-2xl font-bold uppercase tracking-tight">
+                  FALTRIC
                 </span>
               </div>
-            </div>
-            <div className="text-center border-t border-[#2f3e0f] pt-4">
-              <p className="text-sm text-gray-400">
-                Outperforming{" "}
-                <span className="text-[#8faa3a] font-bold underline">88%</span>{" "}
-                of peers.
+              <p className="text-sm font-body text-gray-400 leading-relaxed">
+                Building the decentralized infrastructure for the post-carbon
+                economy. Open source, permissionless, and immutable.
               </p>
+              <div className="flex gap-4">
+                <a
+                  className="h-10 w-10 border border-white flex items-center justify-center hover:bg-white hover:text-black transition-colors"
+                  href="#"
+                >
+                  <span className="text-xs font-bold">TW</span>
+                </a>
+                <a
+                  className="h-10 w-10 border border-white flex items-center justify-center hover:bg-white hover:text-black transition-colors"
+                  href="#"
+                >
+                  <span className="text-xs font-bold">DC</span>
+                </a>
+                <a
+                  className="h-10 w-10 border border-white flex items-center justify-center hover:bg-white hover:text-black transition-colors"
+                  href="#"
+                >
+                  <span className="text-xs font-bold">GH</span>
+                </a>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="font-bold uppercase tracking-wider text-gray-500 mb-2">
+                Protocol
+              </h4>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Network Status
+              </a>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Block Explorer
+              </a>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Governance
+              </a>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Tokenomics
+              </a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="font-bold uppercase tracking-wider text-gray-500 mb-2">
+                Developers
+              </h4>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Documentation
+              </a>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Github
+              </a>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Audits
+              </a>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Bug Bounty
+              </a>
+            </div>
+            <div className="flex flex-col gap-4">
+              <h4 className="font-bold uppercase tracking-wider text-gray-500 mb-2">
+                Legal
+              </h4>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Privacy Policy
+              </a>
+              <a className="hover:text-gray-300 transition-colors" href="#">
+                Terms of Service
+              </a>
+            </div>
+          </div>
+          <div className="flex flex-col md:flex-row items-center justify-between border-t border-gray-800 pt-8 gap-4">
+            <p className="text-sm text-gray-500 font-mono">
+              © 2024 FALTRIC PROTOCOL FOUNDATION.
+            </p>
+            <div className="flex items-center gap-2 border border-gray-800 px-4 py-2 bg-gray-900">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-300">
+                All Systems Operational
+              </span>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Recent Transactions */}
-      <div className="bg-white border-[3px] border-black shadow-[6px_6px_0px_0px_#415514] p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="text-2xl font-black uppercase">
-            Recent P2P Transactions
-          </h3>
-          <a
-            href="/exchange"
-            className="px-4 py-2 text-sm font-bold flex items-center gap-2 bg-[#6b8a1e] text-white border-[3px] border-[#415514] shadow-[4px_4px_0px_0px_#1e2809] hover:bg-[#415514] transition-all"
-          >
-            Trade Energy{" "}
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: "16px" }}
-            >
-              arrow_forward
-            </span>
-          </a>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="text-black border-b-[3px] border-black">
-                {["Type", "Hash", "Volume", "Price/kWh", "Status", "Time"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="pb-4 font-black uppercase text-sm tracking-wider"
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                {
-                  type: "Sell",
-                  dir: "arrow_outward",
-                  hash: "0x71C...9A2",
-                  vol: "12.5 kWh",
-                  price: "0.14 ETH",
-                  status: "Completed",
-                  time: "2 mins ago",
-                  ok: true,
-                },
-                {
-                  type: "Buy",
-                  dir: "arrow_downward",
-                  hash: "0x3B2...1F4",
-                  vol: "45.0 kWh",
-                  price: "0.12 ETH",
-                  status: "Processing",
-                  time: "14 mins ago",
-                  ok: false,
-                  dark: true,
-                },
-                {
-                  type: "Sell",
-                  dir: "arrow_outward",
-                  hash: "0xA92...C21",
-                  vol: "8.2 kWh",
-                  price: "0.15 ETH",
-                  status: "Completed",
-                  time: "1 hour ago",
-                  ok: true,
-                },
-              ].map((row) => (
-                <tr
-                  key={row.hash}
-                  className="border-b border-gray-300 hover:bg-[#f5f7ee] transition-colors group"
-                >
-                  <td className="py-4">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`p-1 border-2 border-black shadow-[2px_2px_0px_0px_#415514] ${row.dark ? "bg-[#1e2809]" : "bg-[#d0db9f]"}`}
-                      >
-                        <span
-                          className={`material-symbols-outlined font-bold ${row.dark ? "text-[#8faa3a]" : "text-[#415514]"}`}
-                          style={{ fontSize: "14px" }}
-                        >
-                          {row.dir}
-                        </span>
-                      </div>
-                      <span className="font-bold uppercase">{row.type}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 font-mono text-gray-500 group-hover:text-black cursor-pointer underline decoration-dotted">
-                    {row.hash}
-                  </td>
-                  <td className="py-4 font-bold">{row.vol}</td>
-                  <td className="py-4">{row.price}</td>
-                  <td className="py-4">
-                    <span
-                      className={`px-2 py-1 text-xs font-bold border-2 uppercase ${row.ok ? "text-[#415514] border-[#6b8a1e] bg-[#d0db9f]" : "border-black border-dashed bg-gray-100"}`}
-                    >
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="py-4 text-right text-gray-500 font-mono">
-                    {row.time}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+      </footer>
+    </div>
   );
 }

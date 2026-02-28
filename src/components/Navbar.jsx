@@ -11,137 +11,158 @@ export default function Navbar({ user, onLogout }) {
     : null;
 
   const NAV_LINKS = [
-    { to: "/", label: "Dashboard", icon: "dashboard" },
+    { to: "/", label: "Home", icon: "home" },
+    { to: "/about", label: "About", icon: "info" },
     { to: "/gridmap", label: "Grid Map", icon: "map" },
+    { to: "/ai-dashboard", label: "AI Dashboard", icon: "auto_awesome" },
     { to: "/exchange", label: "Exchange", icon: "swap_horiz" },
-    { to: "/connect", label: "Connect & AI", icon: "hub" },
+    { to: "/connect", label: "Connect", icon: "hub" },
     ...(isAdmin
       ? [{ to: "/admin", label: "Admin", icon: "admin_panel_settings" }]
       : []),
   ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b-[3px] border-black bg-[#f5f7ee]/95 backdrop-blur-md px-6 py-3 flex items-center justify-between shrink-0 shadow-[0_4px_0_0_#000]">
-      {/* Brand */}
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 bg-[#6b8a1e] text-white border-[3px] border-black flex items-center justify-center shadow-[3px_3px_0_0_#415514]">
-          <span
-            className="material-symbols-outlined font-bold"
-            style={{ fontSize: "20px" }}
-          >
-            bolt
+    <div className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+      <nav className=" w-full justify-between glass-nav rounded-2xl px-2 py-2 flex items-center gap-1 sm:gap-2 pointer-events-auto">
+        {/* Brand */}
+        <div className="flex items-center gap-3 px-4 py-2 mr-2">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 shadow-skeuo-inner text-white border border-white/10">
+            <span className="material-symbols-outlined !text-lg text-white/90">
+              bolt
+            </span>
+          </div>
+          <span className="font-display font-bold text-lg tracking-tight text-white flex items-center gap-2">
+            Faltric
+            {isAdmin && (
+              <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded border border-emerald-500/30">
+                Admin
+              </span>
+            )}
           </span>
         </div>
-        <h1 className="text-2xl font-black uppercase tracking-wider text-black">
-          Faltric
-        </h1>
-        {isAdmin && (
-          <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 bg-[#415514] text-white text-[10px] font-black uppercase border-2 border-black tracking-wider">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: "12px" }}
-            >
-              verified
-            </span>
-            Admin
-          </span>
-        )}
-      </div>
 
-      {/* Desktop nav */}
-      <div className="hidden md:flex items-center gap-1">
-        {NAV_LINKS.map(({ to, label, icon }) => {
-          const active = pathname === to;
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold border-[3px] transition-all uppercase ${
-                active
-                  ? "bg-[#6b8a1e] text-white border-[#415514] shadow-[3px_3px_0px_0px_#415514]"
-                  : "border-transparent text-black hover:border-black hover:bg-black hover:text-white"
-              }`}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "16px" }}
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center bg-white/5 rounded-xl px-1 py-1 border border-white/5 shadow-inner">
+          {NAV_LINKS.map(({ to, label }) => {
+            const active = pathname === to;
+            return (
+              <Link
+                key={to}
+                to={to}
+                className={`px-5 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  active
+                    ? "text-white bg-white/10 shadow-sm"
+                    : "text-[#A1A1AA] hover:text-white hover:bg-white/5"
+                }`}
               >
-                {icon}
-              </span>
-              {label}
-            </Link>
-          );
-        })}
-      </div>
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
-      {/* Wallet + logout */}
-      <div className="flex items-center gap-3">
-        {user?.name && (
-          <span className="hidden lg:block text-xs font-bold text-gray-600 uppercase">
-            {user.name.split(" ")[0]}
-          </span>
-        )}
-        {short && (
-          <div className="hidden lg:flex items-center gap-2 border-[3px] border-black px-3 py-1.5 bg-[#eef0e5] shadow-[2px_2px_0px_0px_#000]">
-            <span
-              className="material-symbols-outlined text-[#6b8a1e]"
-              style={{ fontSize: "16px" }}
+        {/* <div className="w-px h-6 bg-white/10 mx-2 hidden md:block"></div> */}
+
+        {/* Wallet + logout */}
+        <div className="flex items-center gap-2">
+          {short ? (
+            <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-xs font-mono text-white/90">{short}</span>
+            </div>
+          ) : (
+            <Link
+              to="/connect"
+              className="hidden border border-white/10 md:flex skeuo-button rounded-xl px-5 py-2.5 items-center gap-2 group"
             >
-              wallet
+              <span className="material-symbols-outlined !text-[18px] text-white/70 group-hover:text-white transition-colors">
+                account_balance_wallet
+              </span>
+              <span className="text-sm font-medium text-white/90 group-hover:text-white">
+                Connect
+              </span>
+            </Link>
+          )}
+
+          {user && onLogout && (
+            <button
+              onClick={onLogout}
+              className="hidden md:flex p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+              title="Disconnect"
+            >
+              <span className="material-symbols-outlined !text-[20px]">
+                logout
+              </span>
+            </button>
+          )}
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2.5 text-[#A1A1AA] hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <span className="material-symbols-outlined">
+              {menuOpen ? "close" : "menu"}
             </span>
-            <span className="text-xs font-bold font-mono">{short}</span>
+          </button>
+        </div>
+
+        {/* Mobile dropdown */}
+        {menuOpen && (
+          <div className="absolute top-[calc(100%+12px)] left-0 right-0 glass-nav rounded-2xl p-2 flex flex-col md:hidden border border-white/10 shadow-2xl">
+            {NAV_LINKS.map(({ to, label, icon }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                  pathname === to
+                    ? "bg-white/10 text-white"
+                    : "text-[#A1A1AA] hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <span className="material-symbols-outlined !text-[18px]">
+                  {icon}
+                </span>
+                <span className="text-sm font-medium">{label}</span>
+              </Link>
+            ))}
+            {short && (
+              <div className="flex items-center justify-between px-4 py-3 mt-2 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="text-xs font-mono text-white/90">
+                    {short}
+                  </span>
+                </div>
+                {onLogout && (
+                  <button
+                    onClick={onLogout}
+                    className="text-[#A1A1AA] hover:text-white"
+                  >
+                    <span className="material-symbols-outlined !text-[18px]">
+                      logout
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
+            {!short && (
+              <Link
+                to="/connect"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center justify-center gap-2 mt-2 px-4 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm font-medium transition-colors"
+              >
+                <span className="material-symbols-outlined !text-[18px]">
+                  account_balance_wallet
+                </span>
+                Connect Wallet
+              </Link>
+            )}
           </div>
         )}
-        {onLogout && (
-          <button
-            onClick={onLogout}
-            className="hidden sm:flex h-9 px-4 items-center gap-2 bg-white text-black text-xs font-bold uppercase border-[3px] border-black shadow-[3px_3px_0px_0px_#000] hover:bg-[#6b8a1e] hover:text-white hover:border-[#415514] transition-all"
-          >
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: "16px" }}
-            >
-              logout
-            </span>
-            <span className="hidden lg:inline">Disconnect</span>
-          </button>
-        )}
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden h-10 w-10 flex items-center justify-center border-[3px] border-black bg-white hover:bg-[#6b8a1e] hover:text-white transition-all"
-          onClick={() => setMenuOpen((o) => !o)}
-        >
-          <span className="material-symbols-outlined">
-            {menuOpen ? "close" : "menu"}
-          </span>
-        </button>
-      </div>
-
-      {/* Mobile dropdown */}
-      {menuOpen && (
-        <div className="absolute top-full left-0 right-0 bg-[#f5f7ee] border-b-[3px] border-black z-50 flex flex-col md:hidden shadow-[0_6px_0_0_#000]">
-          {NAV_LINKS.map(({ to, label, icon }) => (
-            <Link
-              key={to}
-              to={to}
-              onClick={() => setMenuOpen(false)}
-              className={`flex items-center gap-3 px-6 py-4 font-bold uppercase text-sm border-b border-black/20 transition-colors ${
-                pathname === to
-                  ? "bg-[#6b8a1e] text-white"
-                  : "hover:bg-[#d0db9f] text-black"
-              }`}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: "18px" }}
-              >
-                {icon}
-              </span>
-              {label}
-            </Link>
-          ))}
-        </div>
-      )}
-    </nav>
+      </nav>
+    </div>
   );
 }

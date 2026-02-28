@@ -1,6 +1,7 @@
 {
   "name": "faltric-contracts",
   "version": "1.0.0",
+  "type": "module",
   "description": "Faltric ERC-20 Smart Contracts (Sepolia)",
   "scripts": {
     "compile": "bunx hardhat compile",
@@ -9,7 +10,7 @@
     "deploy:local": "bunx hardhat run scripts/deploy.js --network hardhat"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-ethers": "^4.0.5",
     "dotenv": "^16.4.5",
     "hardhat": "^3.1.10"
   },

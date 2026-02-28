@@ -1,14 +1,17 @@
-// scripts/deploy.js — Run with: npx hardhat run scripts/deploy.js --network sepolia
-const hre = require("hardhat");
+// scripts/deploy.js — Run with: bunx hardhat run scripts/deploy.js --network sepolia
+import hre from "hardhat";
 
 async function main() {
-  const [deployer] = await hre.ethers.getSigners();
+  const connection = await hre.network.connect();
+  const ethers = connection.ethers;
+
+  const [deployer] = await ethers.getSigners();
   console.log("🚀 Deploying FaltricToken with account:", deployer.address);
 
-  const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("💰 Account balance:", hre.ethers.formatEther(balance), "ETH");
+  const balance = await ethers.provider.getBalance(deployer.address);
+  console.log("💰 Account balance:", ethers.formatEther(balance), "ETH");
 
-  const FaltricToken = await hre.ethers.getContractFactory("FaltricToken");
+  const FaltricToken = await ethers.getContractFactory("FaltricToken");
   const token = await FaltricToken.deploy(deployer.address);
 
   await token.waitForDeployment();

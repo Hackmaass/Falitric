@@ -1,58 +1,55 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Core neobrutalism palette ───────── */
-  --color-primary: #000000;
-  --color-secondary: #ffffff;
+  /* ── Core Minimalistic Dark Theme ───────── */
+  --color-primary: #ffffff;
+  --color-secondary: #a1a1aa;
 
-  /* ── Olive green accent system ────────── */
-  --color-olive-50: #f5f7ee;
-  --color-olive-100: #e8edcf;
-  --color-olive-200: #d0db9f;
-  --color-olive-300: #b3c469;
-  --color-olive-400: #8faa3a;
-  --color-olive-500: #6b8a1e; /* primary accent */
-  --color-olive-600: #556f17;
-  --color-olive-700: #415514;
-  --color-olive-800: #2f3e0f;
-  --color-olive-900: #1e2809;
+  --color-background: #080808;
+  --color-surface: #121212;
+  --color-surface-light: #1e1e1e;
 
-  /* ── Semantic mappings ─────────────────  */
-  --color-accent: #6b8a1e;
-  --color-accent-light: #8faa3a;
-  --color-accent-dark: #415514;
-  --color-accent-muted: #b3c469;
+  --color-text-main: #f2f2f2;
+  --color-text-subtle: #a1a1aa;
 
-  --color-background-light: #f0f1e8;
-  --color-background-dark: #e4e6d5;
-  --color-surface-dark: #ffffff;
-  --color-surface-border: #000000;
-  --color-text-main: #000000;
-  --color-text-subtle: #4a4a4a;
+  --color-accent: #ffffff;
+  --color-accent-dim: #333333;
+  --color-emerald-500: #10b981;
 
   /* ── Typography ───────────────────────── */
   --font-display: "Space Grotesk", sans-serif;
-  --font-body: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
 
-  /* ── Neo-shadow tokens ────────────────── */
-  --shadow-neo: 6px 6px 0px 0px #000000;
-  --shadow-neo-sm: 3px 3px 0px 0px #000000;
-  --shadow-neo-lg: 8px 8px 0px 0px #000000;
-  --shadow-neo-olive: 6px 6px 0px 0px #415514;
+  /* ── Shadows and Effects ────────────────── */
+  --shadow-skeuo-inner:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-skeuo-card:
+    0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --shadow-glow: 0 0 20px rgba(255, 255, 255, 0.15);
 }
 
 @layer base {
   body {
-    font-family: var(--font-display);
-    background-color: #eef0e5;
-  }
-
-  :root {
-    --olive: #6b8a1e;
-    --olive-light: #8faa3a;
-    --olive-dark: #415514;
-    --olive-muted: #d0db9f;
-    --olive-bg: #f5f7ee;
+    background-color: #050505;
+    background-image:
+      radial-gradient(
+        circle at 50% 0%,
+        rgba(255, 255, 255, 0.03) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 50%,
+        rgba(255, 255, 255, 0.01) 0%,
+        transparent 30%
+      );
+    font-family: var(--font-body);
+    color: var(--color-text-main);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -74,56 +71,65 @@
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Olive utility overrides ──────────────── */
-.bg-olive {
-  background-color: #6b8a1e;
-}
-.bg-olive-light {
-  background-color: #8faa3a;
-}
-.bg-olive-dark {
-  background-color: #415514;
-}
-.bg-olive-muted {
-  background-color: #d0db9f;
-}
-.bg-olive-50 {
-  background-color: #f5f7ee;
-}
-.text-olive {
-  color: #6b8a1e;
-}
-.text-olive-light {
-  color: #8faa3a;
-}
-.text-olive-dark {
-  color: #415514;
-}
-.border-olive {
-  border-color: #6b8a1e;
-}
-.border-olive-dark {
-  border-color: #415514;
-}
-.shadow-neo-olive {
-  box-shadow: 6px 6px 0px 0px #415514;
-}
-.shadow-neo-sm-olive {
-  box-shadow: 3px 3px 0px 0px #415514;
+/* ── Modern UI Components ──────────────── */
+.glass-nav {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Neo-brutalist scroll bars ─────────────── */
+.skeuo-button {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.skeuo-button:hover {
+  background: linear-gradient(180deg, #333333 0%, #222222 100%);
+  box-shadow:
+    0 4px 12px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.skeuo-button:active {
+  transform: translateY(1px);
+  background: linear-gradient(180deg, #151515 0%, #202020 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.skeuo-card {
+  background: rgba(20, 20, 20, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 20px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+.hero-text-gradient {
+  background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Minimalist Dark scroll bars ─────────────── */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #eef0e5;
+  background: #080808;
 }
 ::-webkit-scrollbar-thumb {
-  background: #6b8a1e;
-  border: 2px solid #000;
+  background: #333;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #415514;
+  background: #555;
 }

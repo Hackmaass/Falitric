@@ -1,0 +1,82 @@
+[
+  {
+    "timestamp": "2024-03-01T00:00:00Z",
+    "node_id": "ND-4291",
+    "type": "Solar",
+    "output_kwh": 0,
+    "demand_kwh": 450,
+    "efficiency_ratio": 0.0
+  },
+  {
+    "timestamp": "2024-03-01T06:00:00Z",
+    "node_id": "ND-4291",
+    "type": "Solar",
+    "output_kwh": 120,
+    "demand_kwh": 800,
+    "efficiency_ratio": 0.15
+  },
+  {
+    "timestamp": "2024-03-01T12:00:00Z",
+    "node_id": "ND-4291",
+    "type": "Solar",
+    "output_kwh": 450,
+    "demand_kwh": 950,
+    "efficiency_ratio": 0.47
+  },
+  {
+    "timestamp": "2024-03-01T18:00:00Z",
+    "node_id": "ND-4291",
+    "type": "Solar",
+    "output_kwh": 50,
+    "demand_kwh": 1200,
+    "efficiency_ratio": 0.04
+  },
+  {
+    "timestamp": "2024-03-01T00:00:00Z",
+    "node_id": "WD-092",
+    "type": "Wind",
+    "output_kwh": 300,
+    "demand_kwh": 250,
+    "efficiency_ratio": 1.2
+  },
+  {
+    "timestamp": "2024-03-01T06:00:00Z",
+    "node_id": "WD-092",
+    "type": "Wind",
+    "output_kwh": 350,
+    "demand_kwh": 400,
+    "efficiency_ratio": 0.88
+  },
+  {
+    "timestamp": "2024-03-01T12:00:00Z",
+    "node_id": "WD-092",
+    "type": "Wind",
+    "output_kwh": 200,
+    "demand_kwh": 600,
+    "efficiency_ratio": 0.33
+  },
+  {
+    "timestamp": "2024-03-01T18:00:00Z",
+    "node_id": "WD-092",
+    "type": "Wind",
+    "output_kwh": 400,
+    "demand_kwh": 850,
+    "efficiency_ratio": 0.47
+  },
+  {
+    "timestamp": "2024-03-01T00:00:00Z",
+    "node_id": "BG-114",
+    "type": "Biogas",
+    "output_kwh": 500,
+    "demand_kwh": 480,
+    "efficiency_ratio": 1.04
+  },
+  {
+    "timestamp": "2024-03-01T12:00:00Z",
+    "node_id": "BG-114",
+    "type": "Biogas",
+    "output_kwh": 500,
+    "demand_kwh": 510,
+    "efficiency_ratio": 0.98
+  }
+]

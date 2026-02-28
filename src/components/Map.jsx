@@ -17,23 +17,28 @@ function loadGoogleMapsOnce(apiKey) {
       delete window[cb];
     };
     const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=${cb}`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=drawing&loading=async&callback=${cb}`;
+    s.async = true;
+    s.defer = true;
     s.onerror = reject;
     document.head.appendChild(s);
   });
   return _mapsPromise;
 }
 
-const MapComponent = () => {
+const MapComponent = ({ user, drawingModeEnabled, onPolygonDrawn }) => {
   const mapRef = useRef(null);
   const [locations, setLocations] = useState([]);
   const [add, setAdd] = useState([]);
+  const [polygons, setPolygons] = useState({});
   const [map, setMap] = useState(null);
+  const drawingManagerRef = useRef(null);
 
   // Track markers and circles so we can clear them on re-render
   const signalMarkersRef = useRef([]);
   const signalCirclesRef = useRef([]);
   const adminMarkersRef = useRef([]);
+  const polygonRefs = useRef([]);
 
   useEffect(() => {
     const dbRef = ref(database, "signals");
@@ -156,8 +161,121 @@ const MapComponent = () => {
         ],
       });
       setMap(map);
+
+      // Store globally for ext tools (custom + / - zoom buttons)
+      window.faltricMap = map;
+      window.faltricCenter = {
+        lat: 18.531581666666668,
+        lng: 73.86704833333333,
+      };
     }
   }, []);
+
+  // Sync drawn polygons from firebase
+  useEffect(() => {
+    const unsub = onValue(ref(database, "faltric_polygons"), (snapshot) => {
+      if (snapshot.exists()) {
+        setPolygons(snapshot.val());
+      } else {
+        setPolygons({});
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Manage Drawing Manager State
+  useEffect(() => {
+    if (!map || !window.google?.maps?.drawing) return;
+
+    if (user?.email === "test@admin.com" && drawingModeEnabled) {
+      if (!drawingManagerRef.current) {
+        drawingManagerRef.current =
+          new window.google.maps.drawing.DrawingManager({
+            drawingMode: window.google.maps.drawing.OverlayType.POLYGON,
+            drawingControl: true,
+            drawingControlOptions: {
+              position: window.google.maps.ControlPosition.TOP_CENTER,
+              drawingModes: [
+                window.google.maps.drawing.OverlayType.MARKER,
+                window.google.maps.drawing.OverlayType.POLYGON,
+              ],
+            },
+            polygonOptions: {
+              fillColor: "#10b981",
+              fillOpacity: 0.4,
+              strokeWeight: 2,
+              strokeColor: "#10b981",
+              clickable: true,
+              editable: false,
+              zIndex: 1,
+            },
+          });
+
+        // Listen for new drawings
+        window.google.maps.event.addListener(
+          drawingManagerRef.current,
+          "overlaycomplete",
+          (e) => {
+            if (e.type === "polygon") {
+              const path = e.overlay.getPath();
+              const coords = [];
+              for (let i = 0; i < path.getLength(); i++) {
+                const pt = path.getAt(i);
+                coords.push({ lat: pt.lat(), lng: pt.lng() });
+              }
+              // Pass back to parent to save to Firebase
+              if (onPolygonDrawn) onPolygonDrawn(coords);
+              // Remove the local overlay since it will redraw from Firebase
+              e.overlay.setMap(null);
+            }
+          },
+        );
+      }
+      drawingManagerRef.current.setMap(map);
+    } else {
+      if (drawingManagerRef.current) {
+        drawingManagerRef.current.setMap(null);
+      }
+    }
+  }, [map, drawingModeEnabled, user]);
+
+  // Render Polygons from Firebase
+  useEffect(() => {
+    if (!map || !window.google) return;
+
+    // Clear old polygons
+    polygonRefs.current.forEach((p) => p.setMap(null));
+    polygonRefs.current = [];
+
+    Object.entries(polygons).forEach(([id, polyData]) => {
+      const polygon = new window.google.maps.Polygon({
+        paths: polyData.coordinates,
+        strokeColor: "#10b981",
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: "#10b981",
+        fillOpacity: 0.35,
+        map: map,
+      });
+
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `
+          <div style="color: black; padding: 5px; font-family: sans-serif;">
+            <h3 style="margin-top: 0; color: #10b981; font-size: 14px;">⚡ ${polyData.name || "Grid Zone"}</h3>
+            <p style="margin: 4px 0; font-size: 12px;"><strong>Type:</strong> ${polyData.type || "Power Plant"}</p>
+            <p style="margin: 4px 0; font-size: 12px;"><strong>Capacity:</strong> ${polyData.capacity || "Unknown"} Units</p>
+          </div>
+        `,
+      });
+
+      polygon.addListener("click", (e) => {
+        infoWindow.setPosition(e.latLng);
+        infoWindow.open(map);
+      });
+
+      polygonRefs.current.push(polygon);
+    });
+  }, [map, polygons]);
 
   // Plot signal markers + circles — clear old ones first
   useEffect(() => {
@@ -326,19 +444,15 @@ const MapComponent = () => {
           height: 100%;
           min-height: 400px;
         }
-        .mpp .gm-bundled-control .gmnoprint,
-        .mpp .gm-fullscreen-control {
-          transform: scale(0.7);
-          transform-origin: right bottom;
-        }
-        .mpp .gm-style .gm-style-cc,
-        .mpp .gmnoprint:not(.gm-bundled-control),
-        .mpp .gm-style a[href^="https://maps.google.com"] {
-          transform: scale(0.75);
-          transform-origin: left bottom;
-        }
-        .mpp .gm-style .gm-style-cc {
-          font-size: 8px !important;
+        .mpp .gm-bundled-control,
+        .mpp .gmnoprint,
+        .mpp .gm-fullscreen-control,
+        .mpp .gm-style-cc,
+        .mpp .gm-style a[href^="https://maps.google.com"],
+        .mpp .gm-style a[title="Report errors in the road map or imagery to Google"] {
+          display: none !important;
+          opacity: 0 !important;
+          visibility: hidden !important;
         }
       `}</style>
       <div
