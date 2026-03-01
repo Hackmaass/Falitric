@@ -33,3 +33,6 @@ contracts/.env
 contracts/artifacts
 contracts/cache
 contracts/typechain-types
+
+.vercel
+.env*.local
