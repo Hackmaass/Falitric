@@ -13,7 +13,14 @@ export default function GridMap({ user }) {
     name: "",
     type: "Solar",
     capacity: "",
+    offset: "",
   });
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     fetch("/energy_data.json")
@@ -70,7 +77,7 @@ export default function GridMap({ user }) {
   const handleAddPlant = async (e) => {
     e.preventDefault();
     if (!pendingCoords) {
-      alert("Please draw a polygon on the map first!");
+      console.log("Please draw a polygon on the map first!");
       return;
     }
 
@@ -81,16 +88,19 @@ export default function GridMap({ user }) {
       coordinates: pendingCoords,
       timestamp: Date.now(),
       createdBy: user?.email,
+      wallet_address: user?.wallet_address,
+      status: "pending",
     };
 
     try {
-      await set(ref(database, `faltric_polygons/${id}`), data);
+      await set(ref(database, `faltric_proposals/${id}`), data);
       setShowAddModal(false);
-      setNewPlant({ name: "", type: "Solar", capacity: "" });
+      setNewPlant({ name: "", type: "Solar", capacity: "", offset: "" });
       setPendingCoords(null);
+      showToast("Proposal submitted for admin approval!");
     } catch (err) {
       console.error("Failed to save polygon", err);
-      alert("Failed to save. Check console for details.");
+      showToast("Failed to save proposal", "error");
     }
   };
 
@@ -102,6 +112,18 @@ export default function GridMap({ user }) {
       className="flex-1 relative flex overflow-hidden bg-[#050505] pt-24"
       style={{ minHeight: "100vh" }}
     >
+      {toast && (
+        <div
+          className={`fixed top-24 right-6 z-[100] px-6 py-4 rounded-xl font-bold text-sm shadow-2xl transition-all border animate-in slide-in-from-right-10 duration-300 ${
+            toast.type === "error"
+              ? "bg-red-900/90 text-red-100 border-red-500/50 backdrop-blur-md"
+              : "bg-emerald-900/90 text-emerald-100 border-emerald-500/50 backdrop-blur-md"
+          }`}
+        >
+          {toast.msg}
+        </div>
+      )}
+
       {/* Actual Google Maps component fills the background */}
       <div className="absolute inset-0 z-0 h-full w-full mix-blend-screen saturate-125 contrast-125 opacity-100 pointer-events-auto">
         <MapComponent
@@ -144,6 +166,10 @@ export default function GridMap({ user }) {
               {
                 name: "Battery",
                 color: "text-purple-400 border-purple-500/30 bg-purple-500/5",
+              },
+              {
+                name: "Critical",
+                color: "text-pink-400 border-pink-500/30 bg-pink-500/5",
               },
             ].map((f, i) => (
               <button
@@ -315,7 +341,7 @@ export default function GridMap({ user }) {
         </div>
 
         {/* GPS location / Recenter */}
-        <button
+        {/* <button
           onClick={() => {
             if (window.faltricMap && window.faltricCenter) {
               window.faltricMap.panTo(window.faltricCenter);
@@ -327,33 +353,29 @@ export default function GridMap({ user }) {
           <span className="material-symbols-outlined !text-[24px] rotate-45">
             navigation
           </span>
-        </button>
+        </button> */}
 
         {/* Admin only: Add information to map */}
-        {isAdmin && (
-          <button
-            onClick={() => {
-              if (drawingModeEnabled) {
-                setDrawingModeEnabled(false);
-              } else {
-                setDrawingModeEnabled(true);
-                alert(
-                  "Drawing mode enabled! Draw a polygon on the map to register a new plant.",
-                );
-              }
-            }}
-            className={`size-14 mt-2 flex items-center justify-center rounded-full text-white transition-all hover:scale-105 active:scale-95 ${
-              drawingModeEnabled
-                ? "bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]"
-                : "bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)] hover:bg-emerald-400"
-            }`}
-            title="Admin: Draw Map Data"
-          >
-            <span className="material-symbols-outlined !text-[28px]">
-              {drawingModeEnabled ? "close" : "local_fire_department"}
-            </span>
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (drawingModeEnabled) {
+              setDrawingModeEnabled(false);
+            } else {
+              setDrawingModeEnabled(true);
+              showToast("Drawing mode enabled! Click map to start.");
+            }
+          }}
+          className={`size-14 mt-2 flex items-center justify-center rounded-full text-white transition-all hover:scale-105 active:scale-95 ${
+            drawingModeEnabled
+              ? "bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.5)]"
+              : "bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)] hover:bg-emerald-400"
+          }`}
+          title="Register New Energy Node"
+        >
+          <span className="material-symbols-outlined !text-[28px]">
+            {drawingModeEnabled ? "close" : "local_fire_department"}
+          </span>
+        </button>
       </aside>
 
       {/* Add Power Plant Modal */}
@@ -417,6 +439,11 @@ export default function GridMap({ user }) {
                       active:
                         "bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.2)]",
                     },
+                    {
+                      type: "Critical",
+                      active:
+                        "bg-pink-500/20 text-pink-400 border-pink-500/50 shadow-[0_0_10px_rgba(236,72,153,0.2)]",
+                    },
                   ].map(({ type, active }) => (
                     <button
                       key={type}
@@ -436,19 +463,31 @@ export default function GridMap({ user }) {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] uppercase font-semibold text-[#A1A1AA] tracking-wider">
-                  Max Capacity (Units)
+                  Max Capacity (kWh / Units)
                 </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={newPlant.capacity}
-                  onChange={(e) =>
-                    setNewPlant({ ...newPlant, capacity: e.target.value })
-                  }
-                  className="bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 shadow-inner font-mono"
-                  placeholder="2500"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    value={newPlant.capacity}
+                    onChange={(e) =>
+                      setNewPlant({
+                        ...newPlant,
+                        capacity: e.target.value,
+                        offset: e.target.value,
+                      })
+                    }
+                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 shadow-inner font-mono"
+                    placeholder="2500"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-400">
+                    = {newPlant.capacity || 0} FAL
+                  </div>
+                </div>
+                <p className="text-[9px] text-gray-500 italic mt-0.5">
+                  * 1 kWh capacity = 1 FAL Token credit upon approval.
+                </p>
               </div>
 
               <button

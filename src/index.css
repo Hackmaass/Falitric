@@ -16,6 +16,10 @@
   --color-accent-dim: #333333;
   --color-emerald-500: #10b981;
 
+  /* ── Pattern Colors ───────────────────── */
+  --grid-line-color: rgba(229, 229, 229, 0.2);
+  --grid-line-color-dark: rgba(255, 255, 255, 0.05);
+
   /* ── Typography ───────────────────────── */
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -141,6 +145,59 @@
   stroke: none;
 }
 
-*{
+/* * {
   filter: contrast(1.01) brightness(1.01);
+} */
+
+/* Dashboard specific styles moving from inline to global for performance */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
+}
+
+.bg-grid-pattern-dark {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, var(--grid-line-color-dark) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color-dark) 1px, transparent 1px);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.text-stroke-black {
+  -webkit-text-stroke: 2px black;
+  color: transparent;
+}
+.text-stroke-white {
+  -webkit-text-stroke: 2px white;
+  color: transparent;
+}
+.font-display {
+  font-family: "Space Grotesk", sans-serif;
+}
+.font-body {
+  font-family: "Noto Sans", sans-serif;
+}
+nav.w-full.justify-between.glass-nav.rounded-2xl.px-2.py-2.flex.items-center.gap-1.sm\:gap-2.pointer-events-auto {
+  margin: 0 10%;
+  padding: 1% 1%;
 }

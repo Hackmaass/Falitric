@@ -44,6 +44,10 @@ nav.w-full.justify-between.glass-nav.rounded-2xl.px-2.py-2.flex.items-center.gap
   justify-content: center;
   gap: 16%;
 }
-span.text-stroke-black{
+span.text-stroke-black {
   font-size: 2em;
+}
+nav.w-full.justify-between.glass-nav.rounded-2xl.px-2.py-2.flex.items-center.gap-1.sm\:gap-2.pointer-events-auto {
+  margin: 0 10%;
+  padding: 1% 1%;
 }

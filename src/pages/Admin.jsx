@@ -1,46 +1,36 @@
 // Admin Grid Controller — admin-only, with real Google Maps + polygon zone drawing
 import { useEffect, useRef, useState } from "react";
-import { database, ref, push, onValue } from "../firebase";
+import { database, ref, push, onValue, get, update, set } from "../firebase";
+import MapComponent from "../components/Map";
 
-const VERIFICATIONS = [
-  {
-    id: "Solar Array #402",
-    zone: "Zone B",
-    amount: "45kWh",
-    icon: "solar_power",
-  },
-  { id: "Wind Turbine X-1", zone: "Zone A", amount: "120kWh", icon: "air" },
-  {
-    id: "Storage Unit 99",
-    zone: "Zone C",
-    amount: "500kWh",
-    icon: "battery_charging_full",
-  },
-  {
-    id: "Smart Meter #8812",
-    zone: "Zone A",
-    amount: "Monitoring",
-    icon: "home_iot_device",
-  },
-];
+// Verification proposal categories are fetched from Firebase
 
-const STATS = [
-  { label: "Total Output", value: "45.2 MW" },
-  { label: "Active Zones", value: "18" },
-  { label: "Carbon Offset", value: "12.5 T" },
-  { label: "Pending", value: "6 Nodes", dark: true },
-];
+// Stats are now calculated dynamically inside the component
 
 export default function Admin({ user }) {
-  const mapRef = useRef(null);
-  const mapObj = useRef(null);
-  const drawMgrRef = useRef(null);
-  const polygonsRef = useRef([]);
-
+  const [proposals, setProposals] = useState([]);
   const [drawMode, setDrawMode] = useState(false);
   const [activity, setActivity] = useState([]);
   const [zones, setZones] = useState([]);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [energyData, setEnergyData] = useState([]);
+  const [toast, setToast] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null); // { handleConfirm, title, msg }
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const walletKey = (addr) =>
+    addr?.toLowerCase().replace(/[.#$[\]]/g, "_") || "";
+
+  // ── Load energy statistics ──────────────────────────
+  useEffect(() => {
+    fetch("/energy_data.json")
+      .then((res) => res.json())
+      .then((data) => setEnergyData(data))
+      .catch((err) => console.error("Failed to load energy data", err));
+  }, []);
 
   // ── Load activity from Firebase ──────────────────────
   useEffect(() => {
@@ -58,155 +48,171 @@ export default function Admin({ user }) {
 
   // ── Load zones from Firebase ─────────────────────────
   useEffect(() => {
-    const unsub = onValue(ref(database, "faltric_zones"), (snap) => {
+    const unsubZones = onValue(ref(database, "faltric_polygons"), (snap) => {
       if (snap.exists()) {
         const all = Object.entries(snap.val()).map(([id, v]) => ({ id, ...v }));
         setZones(all);
+      } else {
+        setZones([]);
       }
     });
-    return () => unsub();
+
+    const unsubProps = onValue(ref(database, "faltric_proposals"), (snap) => {
+      if (snap.exists()) {
+        const all = Object.entries(snap.val())
+          .map(([id, v]) => ({ id, ...v }))
+          .filter((p) => p.status === "pending");
+        setProposals(all);
+      } else {
+        setProposals([]);
+      }
+    });
+
+    return () => {
+      unsubZones();
+      unsubProps();
+    };
   }, []);
 
-  // ── Load Google Maps ─────────────────────────────────
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey || apiKey === "your_google_maps_api_key_here") {
-      setMapLoaded(false);
-      return;
-    }
-
-    const loadMap = () => {
-      if (!mapRef.current) return;
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 18.531581, lng: 73.867048 },
-        zoom: 13,
-        mapTypeId: "hybrid",
-        streetViewControl: false,
-        mapTypeControl: false,
-        styles: [
-          { featureType: "poi", stylers: [{ visibility: "off" }] },
-          { featureType: "transit", stylers: [{ visibility: "off" }] },
-          {
-            featureType: "water",
-            elementType: "geometry",
-            stylers: [{ color: "#1e3a2f" }],
-          },
-        ],
-      });
-      mapObj.current = map;
-
-      // Drawing Manager
-      const drawingManager = new window.google.maps.drawing.DrawingManager({
-        drawingMode: null,
-        drawingControl: false,
-        polygonOptions: {
-          fillColor: "#6b8a1e",
-          fillOpacity: 0.35,
-          strokeColor: "#415514",
-          strokeOpacity: 1,
-          strokeWeight: 3,
-          editable: true,
-          zIndex: 1,
-        },
-      });
-      drawingManager.setMap(map);
-      drawMgrRef.current = drawingManager;
-
-      // On polygon complete — save to Firebase
-      window.google.maps.event.addListener(
-        drawingManager,
-        "polygoncomplete",
-        (polygon) => {
-          const coords = polygon
-            .getPath()
-            .getArray()
-            .map((latlng) => ({
-              lat: latlng.lat(),
-              lng: latlng.lng(),
-            }));
-          push(ref(database, "faltric_zones"), {
-            coords,
-            name: `Zone ${Date.now()}`,
-            createdBy: user?.email || "admin",
-            createdAt: Date.now(),
-            status: "active",
-          }).then(() => {
-            console.log("Zone saved to Firebase");
-          });
-
-          // Turn off drawing mode after each polygon
-          drawingManager.setDrawingMode(null);
-          setDrawMode(false);
-        },
-      );
-
-      setMapLoaded(true);
-    };
-
-    if (window.google?.maps?.drawing) {
-      loadMap();
-    } else if (!document.getElementById("gmap-script")) {
-      const script = document.createElement("script");
-      script.id = "gmap-script";
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=drawing&callback=__falAdminMapInit`;
-      script.async = true;
-      script.defer = true;
-      window.__falAdminMapInit = loadMap;
-      document.body.appendChild(script);
-    } else {
-      // Script loading, wait for callback
-      window.__falAdminMapInit = loadMap;
-    }
-  }, [user?.email]);
-
-  // ── Render zone polygons from Firebase ──────────────
-  useEffect(() => {
-    if (!mapObj.current || !window.google?.maps) return;
-    // Clear old
-    polygonsRef.current.forEach((p) => p.setMap(null));
-    polygonsRef.current = [];
-    // Draw new
-    zones.forEach((z) => {
-      if (!z.coords) return;
-      const poly = new window.google.maps.Polygon({
-        paths: z.coords,
-        fillColor: "#fbbf24", // Solar Yellow by default
-        fillOpacity: 0.25,
-        strokeColor: "#d97706",
-        strokeOpacity: 0.9,
-        strokeWeight: 2,
-        map: mapObj.current,
-      });
-      const infoWin = new window.google.maps.InfoWindow({
-        content: `<div style="font-family:sans-serif;padding:8px;min-width:160px">
-          <strong style="font-size:14px">${z.name || "Zone"}</strong>
-          <p style="font-size:12px;color:#555;margin:4px 0">Status: ${z.status || "active"}</p>
-          <p style="font-size:11px;color:#777;margin:4px 0">Created by: ${z.createdBy || "admin"}</p>
-        </div>`,
-      });
-      poly.addListener("click", (e) =>
-        infoWin.open({ map: mapObj.current, anchor: poly, latLng: e.latLng }),
-      );
-      polygonsRef.current.push(poly);
+  const handlePolygonDrawn = (coords) => {
+    const id = Date.now().toString();
+    set(ref(database, `faltric_polygons/${id}`), {
+      id,
+      coordinates: coords,
+      name: `Admin Zone ${id.slice(-4)}`,
+      type: "Solar", // default
+      createdBy: user?.email || "admin",
+      createdAt: Date.now(),
+      status: "active",
+    }).then(() => {
+      setDrawMode(false);
+      showToast("Zone created successfully!");
     });
-  }, [zones, mapLoaded]);
+  };
 
   // ── Toggle draw mode ──────────────────────────────────
   const toggleDraw = () => {
-    if (!drawMgrRef.current) return;
-    const next = !drawMode;
-    setDrawMode(next);
-    drawMgrRef.current.setDrawingMode(
-      next ? window.google.maps.drawing.OverlayType.POLYGON : null,
-    );
+    setDrawMode(!drawMode);
   };
 
+  const handleApprove = async (prop) => {
+    try {
+      if (!prop.wallet_address) {
+        showToast("Error: No wallet address in proposal", "error");
+        return;
+      }
+      const uKey = walletKey(prop.wallet_address);
+      const userRef = ref(database, `faltric_users/${uKey}`);
+      const userSnap = await get(userRef);
+
+      const currentBalance =
+        (userSnap.exists() ? userSnap.val().token_balance : 0) || 0;
+      const currentUnits =
+        (userSnap.exists() ? userSnap.val().current_units : 0) || 0;
+      const reward = parseFloat(prop.capacity || 0);
+
+      // 1. Update user balance & units
+      await update(userRef, {
+        token_balance: currentBalance + reward,
+        current_units: currentUnits + reward, // Also 1:1 units
+      });
+
+      // 2. Make polygon live
+      await set(ref(database, `faltric_polygons/${prop.id}`), {
+        ...prop,
+        status: "active",
+        approvedBy: user?.email,
+        approvedAt: Date.now(),
+      });
+
+      // 3. Mark proposal as approved
+      await update(ref(database, `faltric_proposals/${prop.id}`), {
+        status: "approved",
+      });
+
+      showToast(`Approved! Issued ${reward} FAL to ${prop.createdBy}`);
+    } catch (err) {
+      console.error("Approval failed", err);
+      showToast("Error approving proposal", "error");
+    }
+  };
+
+  const handleReject = async (propId) => {
+    setConfirmModal({
+      title: "Reject Proposal",
+      msg: "Are you sure you want to reject this energy node proposal?",
+      handleConfirm: async () => {
+        try {
+          await update(ref(database, `faltric_proposals/${propId}`), {
+            status: "rejected",
+          });
+          showToast("Proposal rejected", "success");
+        } catch (err) {
+          showToast("Rejection failed", "error");
+        }
+        setConfirmModal(null);
+      },
+    });
+  };
+
+  // ── Stats Calculation ──────────────────────────────
+  const stats = [
+    {
+      label: "Total Output",
+      value: `${zones.reduce((sum, z) => sum + parseFloat(z.offset || 0), 0).toLocaleString()} FAL`,
+    },
+    { label: "Active Zones", value: zones.length.toString() },
+    {
+      label: "Carbon Offset",
+      value: `${(zones.reduce((sum, z) => sum + parseFloat(z.offset || 0), 0) * 0.85).toFixed(1)} T`,
+    },
+    { label: "Pending", value: `${proposals.length} Nodes`, dark: true },
+  ];
+
   return (
-    <div className="flex flex-col p-4 md:p-6 gap-8 min-h-screen bg-[#eef0e5]">
+    <div className="flex flex-col p-4 md:p-6 pt-36 md:pt-40 gap-8 min-h-screen bg-[#f0f9f6]">
+      {toast && (
+        <div
+          className={`fixed top-24 right-6 z-[100] px-6 py-4 rounded-xl font-bold text-sm shadow-2xl border transition-all animate-in slide-in-from-right-10 ${
+            toast.type === "error"
+              ? "bg-red-500 text-white border-black"
+              : "bg-[#059669] text-white border-black"
+          }`}
+        >
+          {toast.msg}
+        </div>
+      )}
+
+      {confirmModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white border-4 border-black shadow-[12px_12px_0px_0px_#000] p-6 w-full max-w-sm flex flex-col gap-4">
+            <h3 className="text-xl font-black uppercase tracking-tight">
+              {confirmModal.title}
+            </h3>
+            <p className="text-sm font-bold text-gray-600 font-mono">
+              {confirmModal.msg}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmModal.handleConfirm}
+                className="flex-1 h-12 bg-red-500 text-white font-black uppercase border-2 border-black shadow-[3px_3px_0px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 h-12 bg-white text-black font-black uppercase border-2 border-black shadow-[3px_3px_0px_0px_#888] active:translate-y-0.5 active:shadow-none transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Page header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b-4 border-black pb-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#6b8a1e] mb-2">
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#059669] mb-2">
             <span
               className="material-symbols-outlined"
               style={{ fontSize: "14px" }}
@@ -215,7 +221,7 @@ export default function Admin({ user }) {
             </span>
             <span>Admin</span>
             <span>/</span>
-            <span className="bg-[#d0db9f] px-1 border border-[#6b8a1e]">
+            <span className="bg-[#d1fae5] px-1 border border-[#059669]">
               Grid Management
             </span>
           </div>
@@ -224,190 +230,181 @@ export default function Admin({ user }) {
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <span className="size-3 bg-[#6b8a1e] rounded-full border border-black animate-pulse" />
+          <span className="size-3 bg-[#059669] rounded-full border border-black animate-pulse" />
           <span className="text-xs font-mono font-bold">SYSTEM ONLINE</span>
-          <span className="px-2 py-1 bg-[#1e2809] text-[#8faa3a] text-[10px] font-black uppercase border-2 border-[#415514]">
+          <span className="px-2 py-1 bg-[#022c22] text-[#10b981] text-[10px] font-black uppercase border-2 border-[#064e3b]">
             ADMIN MODE
           </span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Stats Section - Full Width at Top */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {stats.map(({ label, value, dark }) => (
+          <div
+            key={label}
+            className={`p-5 border-4 border-black shadow-[6px_6px_0px_0px_${dark ? "#064e3b" : "#000"}] flex flex-col justify-between min-h-[100px] transition-transform hover:-translate-y-1 ${dark ? "bg-[#022c22] text-white" : "bg-white text-black"}`}
+          >
+            <span
+              className={`text-[10px] font-black uppercase tracking-[0.2em] ${dark ? "text-[#10b981]" : "text-gray-500"}`}
+            >
+              {label}
+            </span>
+            <span className="text-3xl font-black tracking-tighter">
+              {value}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 ">
         {/* Map */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          <div className="relative w-full h-[460px] border-4 border-black shadow-[8px_8px_0px_0px_#415514] overflow-hidden">
-            {/* Real Google Maps */}
-            <div
-              ref={mapRef}
-              className="absolute inset-0"
-              style={{ height: "100%", width: "100%" }}
-            />
-
-            {/* Fallback if no API key */}
-            {!mapLoaded && (
-              <div className="absolute inset-0 bg-[#eef0e5]">
-                <div
-                  className="absolute inset-0 opacity-10"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(#415514 1px,transparent 1px),linear-gradient(90deg,#415514 1px,transparent 1px)",
-                    backgroundSize: "40px 40px",
-                  }}
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#415514]">
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: "48px" }}
-                  >
-                    map
-                  </span>
-                  <span className="font-black text-lg uppercase tracking-widest">
-                    Google Maps — API Key Required
-                  </span>
-                  <span className="text-sm font-mono text-[#6b8a1e]">
-                    Add VITE_GOOGLE_MAPS_API_KEY to .env
-                  </span>
-                </div>
-              </div>
-            )}
+          <div className="relative w-full h-[520px] border-4 border-black shadow-[8px_8px_0px_0px_#064e3b] overflow-hidden group">
+            <div className=" saturate-125 contrast-125 opacity-100 absolute inset-0 z-0 h-full w-full pointer-events-auto bg-gray-100">
+              <MapComponent
+                user={user}
+                drawingModeEnabled={drawMode}
+                onPolygonDrawn={handlePolygonDrawn}
+                energyData={energyData}
+              />
+            </div>
 
             {/* Zone tool overlay */}
-            {mapLoaded && (
-              <div className="absolute top-4 left-4 z-10 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#415514] p-4 w-60">
-                <h3 className="font-black uppercase text-sm border-b-2 border-black pb-1 mb-3 flex items-center gap-2">
+            <div className="absolute top-4 left-4 z-10 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#064e3b] p-4 w-60 pointer-events-auto">
+              <h3 className="font-black uppercase text-sm border-b-2 border-black pb-1 mb-3 flex items-center gap-2">
+                <span
+                  className="material-symbols-outlined text-[#059669]"
+                  style={{ fontSize: "16px" }}
+                >
+                  draw
+                </span>
+                Zone Definition
+              </h3>
+              <p className="text-gray-600 text-xs font-mono mb-3 leading-tight">
+                Draw polygons on the map to define P2P trading zones.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={toggleDraw}
+                  className={`flex items-center justify-center gap-1.5 h-10 border-2 border-black text-xs font-bold uppercase transition-all ${
+                    drawMode
+                      ? "bg-[#059669] text-white shadow-none translate-x-[1px] translate-y-[1px]"
+                      : "bg-black text-white shadow-[2px_2px_0px_0px_#064e3b] hover:bg-[#059669]"
+                  }`}
+                >
                   <span
-                    className="material-symbols-outlined text-[#6b8a1e]"
-                    style={{ fontSize: "16px" }}
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "14px" }}
                   >
-                    draw
+                    {drawMode ? "stop_circle" : "draw"}
                   </span>
-                  Zone Definition
-                </h3>
-                <p className="text-gray-600 text-xs font-mono mb-3">
-                  Draw polygons on the map to define P2P trading zones.
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={toggleDraw}
-                    className={`flex items-center justify-center gap-1.5 h-10 border-2 border-black text-xs font-bold uppercase transition-all ${
-                      drawMode
-                        ? "bg-[#6b8a1e] text-white shadow-none translate-x-[1px] translate-y-[1px]"
-                        : "bg-black text-white shadow-[2px_2px_0px_0px_#415514] hover:bg-[#6b8a1e]"
-                    }`}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: "14px" }}
-                    >
-                      {drawMode ? "stop_circle" : "draw"}
-                    </span>
-                    {drawMode ? "Stop" : "Draw"}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (drawMgrRef.current)
-                        drawMgrRef.current.setDrawingMode(null);
-                      setDrawMode(false);
-                    }}
-                    className="flex items-center justify-center gap-1.5 h-10 border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#888] hover:bg-gray-100 text-xs font-bold uppercase transition-all"
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: "14px" }}
-                    >
-                      edit
-                    </span>
-                    Edit
-                  </button>
-                </div>
-                {drawMode && (
-                  <div className="flex items-center gap-2 mt-3 bg-[#d0db9f] p-2 border border-[#6b8a1e]">
-                    <div className="size-2 rounded-full bg-[#6b8a1e] animate-pulse" />
-                    <span className="text-[10px] font-mono font-bold uppercase text-[#1e2809]">
-                      Click map to draw zone
-                    </span>
-                  </div>
-                )}
-                <div className="mt-3 text-xs font-mono text-gray-500">
-                  {zones.length} zone{zones.length !== 1 ? "s" : ""} saved
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {STATS.map(({ label, value, dark }) => (
-              <div
-                key={label}
-                className={`p-4 border-2 border-black shadow-[4px_4px_0px_0px_${dark ? "#415514" : "#000"}] flex flex-col justify-between h-24 ${dark ? "bg-[#1e2809]" : "bg-white"}`}
-              >
-                <span
-                  className={`text-xs font-black uppercase tracking-wider ${dark ? "text-[#8faa3a]" : "text-gray-500"}`}
+                  {drawMode ? "Stop" : "Draw"}
+                </button>
+                <button
+                  onClick={() => setDrawMode(false)}
+                  className="flex items-center justify-center gap-1.5 h-10 border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_#888] hover:bg-gray-100 text-xs font-bold uppercase transition-all"
                 >
-                  {label}
-                </span>
-                <span
-                  className={`text-2xl font-black ${dark ? "text-white" : "text-black"}`}
-                >
-                  {value}
-                </span>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: "14px" }}
+                  >
+                    edit
+                  </span>
+                  Edit
+                </button>
               </div>
-            ))}
+              {drawMode && (
+                <div className="flex items-center gap-2 mt-3 bg-[#d1fae5] p-2 border border-[#059669]">
+                  <div className="size-2 rounded-full bg-[#059669] animate-pulse" />
+                  <span className="text-[10px] font-mono font-bold uppercase text-[#022c22]">
+                    Click map to draw zone
+                  </span>
+                </div>
+              )}
+              <div className="mt-3 text-[10px] font-black uppercase tracking-widest text-[#059669]">
+                {zones.length} zones active
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Verifications panel */}
         <div className="lg:col-span-4">
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#415514] flex flex-col max-h-[700px]">
-            <div className="p-5 border-b-4 border-black flex justify-between items-center bg-[#f5f7ee]">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_#064e3b] flex flex-col h-full max-h-[520px]">
+            <div className="p-5 border-b-4 border-black flex justify-between items-center bg-[#f0f9f6]">
               <h3 className="font-black text-xl uppercase tracking-tight">
                 Verifications
               </h3>
-              <span className="bg-[#6b8a1e] text-white text-xs font-bold px-2 py-1 border border-[#415514]">
-                {VERIFICATIONS.length} NEW
+              <span className="bg-[#059669] text-white text-xs font-bold px-2 py-1 border border-[#064e3b]">
+                {proposals.length} NEW
               </span>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white">
-              {VERIFICATIONS.map((v) => (
-                <div
-                  key={v.id}
-                  className="p-4 bg-[#f5f7ee] border-2 border-black shadow-[4px_4px_0px_0px_#415514] flex flex-col gap-4 hover:bg-white transition-colors"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-3">
-                      <div className="size-10 bg-[#d0db9f] border-2 border-black flex items-center justify-center">
-                        <span
-                          className="material-symbols-outlined text-[#415514]"
-                          style={{ fontSize: "20px" }}
-                        >
-                          {v.icon}
-                        </span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm uppercase">{v.id}</h4>
-                        <p className="text-xs text-gray-500 font-mono">
-                          {v.zone} • {v.amount}
-                        </p>
+              {proposals.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-300">
+                  <span className="material-symbols-outlined text-4xl mb-2">
+                    verified
+                  </span>
+                  <p className="text-[10px] font-black uppercase tracking-widest">
+                    Queue Empty
+                  </p>
+                </div>
+              ) : (
+                proposals.map((v) => (
+                  <div
+                    key={v.id}
+                    className="p-4 bg-[#f0f9f6] border-2 border-black shadow-[4px_4px_0px_0px_#064e3b] flex flex-col gap-4 hover:bg-white transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex gap-3">
+                        <div className="size-10 bg-[#d1fae5] border-2 border-black flex items-center justify-center shrink-0">
+                          <span
+                            className="material-symbols-outlined text-[#064e3b]"
+                            style={{ fontSize: "20px" }}
+                          >
+                            {v.type === "Solar"
+                              ? "solar_power"
+                              : v.type === "Wind"
+                                ? "air"
+                                : v.type === "Biogas"
+                                  ? "energy_program_saving"
+                                  : "bolt"}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-sm uppercase truncate">
+                            {v.name}
+                          </h4>
+                          <p className="text-[10px] text-gray-500 font-mono truncate">
+                            {v.createdBy}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1.5 text-xs font-black text-[#059669]">
+                            {v.offset} FAL
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 text-[10px] font-black bg-[#d0db9f] border border-[#6b8a1e] text-[#1e2809]">
-                      PENDING
-                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApprove(v)}
+                        className="flex-1 h-9 bg-[#059669] hover:bg-[#064e3b] text-white text-[10px] font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_#022c22] active:translate-y-0.5 active:shadow-none transition-all"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleReject(v.id)}
+                        className="flex-1 h-9 bg-white hover:bg-gray-100 text-black text-[10px] font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button className="flex-1 h-10 bg-[#6b8a1e] hover:bg-[#415514] text-white text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_#1e2809] active:translate-y-0.5 active:shadow-none transition-all">
-                      Approve
-                    </button>
-                    <button className="flex-1 h-10 bg-white hover:bg-gray-100 text-black text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none transition-all">
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
-            <div className="p-4 border-t-4 border-black bg-[#eef0e5]">
-              <button className="w-full h-10 flex items-center justify-center text-xs font-black uppercase border-2 border-dashed border-[#6b8a1e] text-[#6b8a1e] hover:bg-[#6b8a1e] hover:text-white hover:border-solid transition-colors">
+            <div className="p-4 border-t-4 border-black bg-[#f0f9f6]">
+              <button className="w-full h-10 flex items-center justify-center text-[10px] font-black uppercase border-2 border-dashed border-[#059669] text-[#059669] hover:bg-[#059669] hover:text-white hover:border-solid transition-colors">
                 View all verifications
               </button>
             </div>
@@ -419,19 +416,19 @@ export default function Admin({ user }) {
       <div>
         <div className="flex items-center gap-4 mb-4">
           <h3 className="text-2xl font-black uppercase flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#6b8a1e]">
+            <span className="material-symbols-outlined text-[#059669]">
               history
             </span>
             Recent Activity
           </h3>
-          <div className="h-1 flex-1 bg-[#6b8a1e]" />
+          <div className="h-1 flex-1 bg-[#059669]" />
           <span className="text-xs font-mono text-gray-500">
             Live from Firebase
           </span>
         </div>
-        <div className="overflow-x-auto border-4 border-black shadow-[6px_6px_0px_0px_#415514]">
+        <div className="overflow-x-auto border-4 border-black shadow-[6px_6px_0px_0px_#064e3b]">
           <table className="w-full text-left text-sm bg-white">
-            <thead className="bg-[#1e2809] text-[#8faa3a] text-xs uppercase font-bold tracking-wider">
+            <thead className="bg-[#022c22] text-[#10b981] text-xs uppercase font-bold tracking-wider">
               <tr>
                 {[
                   "Type",
@@ -443,7 +440,7 @@ export default function Admin({ user }) {
                 ].map((h) => (
                   <th
                     key={h}
-                    className="px-6 py-4 border-r border-[#415514] last:border-r-0"
+                    className="px-6 py-4 border-r border-[#064e3b] last:border-r-0"
                   >
                     {h}
                   </th>
@@ -464,12 +461,12 @@ export default function Admin({ user }) {
                 activity.map((r) => (
                   <tr
                     key={r.id}
-                    className="hover:bg-[#f5f7ee] transition-colors"
+                    className="hover:bg-[#f0f9f6] transition-colors"
                   >
                     <td className="px-6 py-4 border-r-2 border-black">
                       <span className="flex items-center gap-2">
                         <span
-                          className="material-symbols-outlined text-[#6b8a1e]"
+                          className="material-symbols-outlined text-[#059669]"
                           style={{ fontSize: "16px" }}
                         >
                           bolt
@@ -489,7 +486,7 @@ export default function Admin({ user }) {
                     <td className="px-6 py-4 border-r-2 border-black">
                       {parseFloat(r.price || 0).toFixed(3)}
                     </td>
-                    <td className="px-6 py-4 text-right font-bold text-[#415514]">
+                    <td className="px-6 py-4 text-right font-bold text-[#064e3b]">
                       {parseFloat(r.total || 0).toFixed(2)}
                     </td>
                   </tr>
@@ -500,8 +497,8 @@ export default function Admin({ user }) {
         </div>
       </div>
 
-      <footer className="text-center py-8 text-xs font-mono text-[#6b8a1e] border-t-2 border-dashed border-[#8faa3a]">
-        FALTRIC ADMIN SYSTEM v3.0 • OLIVE NEOBRUTALIST MODE • {user?.email}
+      <footer className="text-center py-8 text-xs font-mono text-[#059669] border-t-2 border-dashed border-[#10b981]">
+        FALTRIC ADMIN SYSTEM v3.0 • MODERN DARKGREEN MODE • {user?.email}
       </footer>
     </div>
   );

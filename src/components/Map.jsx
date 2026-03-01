@@ -106,28 +106,15 @@ const MapComponent = ({
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey || apiKey === "your_google_maps_api_key_here") {
-      console.warn(
-        "[Faltric] VITE_GOOGLE_MAPS_API_KEY not set in .env — map will not render.",
-      );
+      console.warn("[Faltric] VITE_GOOGLE_MAPS_API_KEY not set.");
       return;
     }
 
-    let cancelled = false;
-    loadGoogleMapsOnce(apiKey)
-      .then(() => {
-        if (cancelled || !mapRef.current) return;
-        initializeGoogleMap();
-      })
-      .catch((err) => {
-        console.error("[Faltric] Google Maps failed to load:", err);
-      });
+    let mapInstance = null;
+    loadGoogleMapsOnce(apiKey).then(() => {
+      if (!mapRef.current || map) return;
 
-    return () => {
-      cancelled = true;
-    };
-
-    function initializeGoogleMap() {
-      const map = new window.google.maps.Map(mapRef.current, {
+      mapInstance = new window.google.maps.Map(mapRef.current, {
         center: { lat: 21.04718, lng: 75.769189 },
         zoom: 18,
         mapTypeId: "hybrid",
@@ -138,43 +125,15 @@ const MapComponent = ({
         },
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
-          style: window.google.maps.ZoomControlStyle.SMALL,
         },
-        styles: [
-          { featureType: "poi", stylers: [{ visibility: "off" }] },
-          { featureType: "transit", stylers: [{ visibility: "off" }] },
-          {
-            featureType: "road",
-            elementType: "geometry",
-            stylers: [{ visibility: "off" }],
-          },
-          {
-            featureType: "road",
-            elementType: "labels.text",
-            stylers: [{ visibility: "on" }],
-          },
-          {
-            featureType: "administrative.locality",
-            elementType: "labels",
-            stylers: [{ visibility: "on" }],
-          },
-          {
-            featureType: "water",
-            elementType: "labels",
-            stylers: [{ visibility: "on" }],
-          },
-        ],
+        styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }],
       });
-      setMap(map);
 
-      // Store globally for ext tools (custom + / - zoom buttons)
-      window.faltricMap = map;
-      window.faltricCenter = {
-        lat: 18.531581666666668,
-        lng: 73.86704833333333,
-      };
-    }
-  }, []);
+      setMap(mapInstance);
+      window.faltricMap = mapInstance;
+      window.faltricCenter = { lat: 21.04718, lng: 75.769189 };
+    });
+  }, [map]); // Re-check if map is not yet set
 
   // Sync drawn polygons from firebase
   useEffect(() => {
@@ -192,7 +151,7 @@ const MapComponent = ({
   useEffect(() => {
     if (!map || !window.google?.maps?.drawing) return;
 
-    if (user?.email === "test@admin.com" && drawingModeEnabled) {
+    if (drawingModeEnabled) {
       if (!drawingManagerRef.current) {
         drawingManagerRef.current =
           new window.google.maps.drawing.DrawingManager({
@@ -259,7 +218,10 @@ const MapComponent = ({
         color = "#fbbf24"; // yellow
       else if (type.includes("wind"))
         color = "#3b82f6"; // blue
-      else if (type.includes("biogas") || type === "bio") color = "#22c55e"; // green
+      else if (type.includes("biogas") || type === "bio")
+        color = "#22c55e"; // green
+      else if (type.includes("critical") || type.includes("unrenewable"))
+        color = "#ec4899"; // pink
 
       const nodeData = (energyData || []).find(
         (d) =>
@@ -304,7 +266,7 @@ const MapComponent = ({
 
       polygonRefs.current.push(polygon);
     });
-  }, [map, polygons]);
+  }, [map, polygons, energyData]);
 
   // Plot signal markers + circles — clear old ones first
   useEffect(() => {

@@ -13,7 +13,8 @@ import {
   remove,
 } from "firebase/database";
 
-dotenv.config({ path: "../.env" }); // Load .env from Vite root
+dotenv.config(); // Load local .env
+dotenv.config({ path: "../.env" }); // Load Vite root .env as fallback
 
 const app = express();
 app.use(cors());

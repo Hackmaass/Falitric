@@ -66,8 +66,24 @@ export default function Navbar({ user, onLogout }) {
 
         {/* <div className="w-px h-6 bg-white/10 mx-2 hidden md:block"></div> */}
 
-        {/* Wallet + logout */}
+        {/* Wallet + balance + logout */}
         <div className="flex items-center gap-2">
+          {short && (
+            <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                Balance
+              </span>
+              <span className="text-sm font-bold text-white font-mono">
+                {user.token_balance
+                  ? parseFloat(user.token_balance).toLocaleString()
+                  : "0"}{" "}
+                <span className="text-[10px] text-emerald-400/60 font-sans uppercase">
+                  Fal
+                </span>
+              </span>
+            </div>
+          )}
+
           {short ? (
             <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -147,11 +163,19 @@ export default function Navbar({ user, onLogout }) {
             ))}
             {short && (
               <div className="flex items-center justify-between px-4 py-3 mt-2 border-t border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-xs font-mono text-white/90">
-                    {short}
-                  </span>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-xs font-mono text-white/90">
+                      {short}
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-bold text-emerald-400 mt-1">
+                    {user.token_balance
+                      ? parseFloat(user.token_balance).toLocaleString()
+                      : "0"}{" "}
+                    FAL
+                  </div>
                 </div>
                 {onLogout && (
                   <button
