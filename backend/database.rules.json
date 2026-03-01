@@ -1,0 +1,20 @@
+{
+  "rules": {
+    ".read": "now < 1743382400000",
+    ".write": "now < 1743382400000",
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "orders": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "market": {
+      ".read": true,
+      ".write": false
+    }
+  }
+}

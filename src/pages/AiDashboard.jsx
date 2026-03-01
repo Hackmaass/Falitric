@@ -15,6 +15,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { API_BASE } from "../firebase";
 
 export default function AiDashboard({ user }) {
   const [energyData, setEnergyData] = useState([]);
@@ -60,7 +61,7 @@ Based on the localized temporal patterns in your grid, we've identified key opti
       // Prompt construction for the AI
       const prompt = `Analyze the provided JSON data about decentralized power plant nodes and provide a concise, insightful report on efficiency, anomalies, and recommendations. Here is the dataset: ${JSON.stringify(energyData)}`;
 
-      const response = await fetch("http://localhost:3000/api/ai/chat", {
+      const response = await fetch(`${API_BASE}/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: prompt }),

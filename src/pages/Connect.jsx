@@ -1,6 +1,6 @@
 // Connect & Community Chat — Neobrutalist Design with Firebase Realtime Backend
 import { useState, useEffect, useRef } from "react";
-import { database, ref, push, onValue, get } from "../firebase";
+import { database, ref, push, onValue, get, API_BASE } from "../firebase";
 
 const BATCH_SIZE = 20;
 
@@ -84,7 +84,7 @@ export default function Connect({ user }) {
       setInput("");
 
       try {
-        const res = await fetch("http://localhost:3000/api/ai/chat", {
+        const res = await fetch(`${API_BASE}/ai/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -13,12 +13,35 @@ import {
   remove,
 } from "firebase/database";
 
+import { onRequest } from "firebase-functions/v2/https";
+
 dotenv.config(); // Load local .env
 dotenv.config({ path: "../.env" }); // Load Vite root .env as fallback
 
 const app = express();
-app.use(cors());
+
+const allowedOrigins = ["https://flactric.vercel.app", "http://localhost:5173"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
+
+// Export as Firebase Function
+export const api = onRequest({ region: "asia-southeast1" }, app);
+
+// Standard export for Vercel/Others
+export default app;
 
 const PORT = process.env.PORT || 3000;
 
