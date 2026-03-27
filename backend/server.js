@@ -53,14 +53,14 @@ const PORT = process.env.PORT || 3000;
 
 // Initialize Firebase App
 const firebaseConfig = {
-  apiKey: process.env.VITE_API_KEY,
-  authDomain: process.env.VITE_AUTH_DOMAIN,
-  databaseURL: process.env.VITE_DATABASE_URL,
-  projectId: process.env.VITE_PROJECT_ID,
-  storageBucket: process.env.VITE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_APP_ID,
-  measurementId: process.env.VITE_MEASUREMENT_ID,
+  apiKey: process.env.VITE_API_KEY || "AIzaSyAGEsz96ilQMFShYOl6iaqRizGBEkKOprI",
+  authDomain: process.env.VITE_AUTH_DOMAIN || "execute-94cf0.firebaseapp.com",
+  databaseURL: process.env.VITE_DATABASE_URL || "https://execute-94cf0-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: process.env.VITE_PROJECT_ID || "execute-94cf0",
+  storageBucket: process.env.VITE_STORAGE_BUCKET || "execute-94cf0.firebasestorage.app",
+  messagingSenderId: process.env.VITE_MESSAGING_SENDER_ID || "225531460479",
+  appId: process.env.VITE_APP_ID || "1:225531460479:web:d948fd635efb4bcd59b84a",
+  measurementId: process.env.VITE_MEASUREMENT_ID || "G-87WWFVH268",
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
@@ -153,7 +153,7 @@ app.delete(/^\/api\/db\/(.*)/, async (req, res) => {
 app.post("/api/ai/chat", async (req, res) => {
   try {
     const { message, history } = req.body;
-    const apiKey = process.env.VITE_SARVAM_API_KEY;
+    const apiKey = process.env.VITE_SARVAM_API_KEY || "sk_bcqk6x24_1fvHA2Jld8zvq0onroU0vdRK";
 
     if (!apiKey) {
       console.error("[AI_PROXY] Missing VITE_SARVAM_API_KEY in .env");
@@ -237,7 +237,7 @@ app.post("/api/ai/chat", async (req, res) => {
 app.post("/api/ai/tts", async (req, res) => {
   try {
     const { text } = req.body;
-    const apiKey = process.env.VITE_SARVAM_API_KEY;
+    const apiKey = process.env.VITE_SARVAM_API_KEY || "sk_bcqk6x24_1fvHA2Jld8zvq0onroU0vdRK";
 
     if (!apiKey) {
       console.error("[AI_TTS_PROXY] Missing VITE_SARVAM_API_KEY in .env");
