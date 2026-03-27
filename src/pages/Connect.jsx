@@ -1,5 +1,6 @@
-// Connect & Community Chat — Neobrutalist Design with Firebase Realtime Backend
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { database, ref, push, onValue, get, API_BASE } from "../firebase";
 
 const BATCH_SIZE = 20;
@@ -20,7 +21,19 @@ export default function Connect({ user }) {
   const [loading, setLoading] = useState(true);
   const [chatMode, setChatMode] = useState("user"); // "user" or "ai"
   const [lastBatchTime, setLastBatchTime] = useState(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState(null);
+  const [loadingVoiceId, setLoadingVoiceId] = useState(null);
   const scrollRef = useRef(null);
+  const audioRef = useRef(null);
+
+  // Stop audio if unmounted
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -131,6 +144,73 @@ export default function Connect({ user }) {
     // In a real scenarios we'd use endAt/limitToLast more precisely
     // but our mock server/proxy handles a simple limitToLast as a slice.
     // For now, let's keep it simple as real-time handles the updates.
+  };
+
+  const playVoice = async (text, msgId) => {
+    // If already playing this message, stop it
+    if (playingVoiceId === msgId) {
+      if (audioRef.current && audioRef.current.pause) {
+        audioRef.current.pause();
+        audioRef.current.shouldStop = true;
+      }
+      setPlayingVoiceId(null);
+      return;
+    }
+
+    // Stop any currently playing audio
+    if (audioRef.current && audioRef.current.pause) {
+      audioRef.current.pause();
+      audioRef.current.shouldStop = true;
+    }
+
+    setLoadingVoiceId(msgId);
+    try {
+      const res = await fetch(`${API_BASE}/ai/tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch audio");
+      }
+
+      const data = await res.json();
+      setLoadingVoiceId(null);
+
+      if (data.audios && data.audios.length > 0) {
+        setPlayingVoiceId(msgId);
+        let myAudioObj = { shouldStop: false, pause: () => {} };
+        audioRef.current = myAudioObj;
+
+        for (const base64 of data.audios) {
+          if (myAudioObj.shouldStop) break;
+          
+          await new Promise((resolve) => {
+            const audioSrc = `data:audio/wav;base64,${base64}`;
+            const audio = new Audio(audioSrc);
+            
+            myAudioObj.pause = () => {
+              audio.pause();
+              resolve();
+            };
+
+            audio.onended = resolve;
+            audio.onerror = resolve;
+            audio.play().catch((err) => {
+              console.error("Audio block playback failed", err);
+              resolve();
+            });
+          });
+        }
+        
+        // After all chunks finish, reset state if it wasn't forcibly stopped
+        setPlayingVoiceId((prev) => (prev === msgId ? null : prev));
+      }
+    } catch (err) {
+      console.error("Voice playback error:", err);
+      setLoadingVoiceId(null);
+    }
   };
 
   const currentMessages = chatMode === "user" ? messages : aiMessages;
@@ -257,13 +337,54 @@ export default function Connect({ user }) {
                           </span>
                         </div>
                         <div
-                          className={`border p-4 shadow-brutal transition-all ${isMe ? "bg-white border-white text-black" : isOracle ? "bg-purple-950/20 border-purple-500/30 text-purple-100" : "bg-[#1a1a1a] border-white/10 text-gray-200"}`}
+                          className={`border p-4 shadow-brutal transition-all flex flex-col gap-2 ${isMe ? "bg-white border-white text-black" : isOracle ? "bg-purple-950/20 border-purple-500/30 text-purple-100" : "bg-[#1a1a1a] border-white/10 text-gray-200"}`}
                         >
-                          <p
-                            className={`text-sm font-medium leading-relaxed ${isOracle ? "font-mono" : ""}`}
+                          <div
+                            className={`text-sm font-medium leading-relaxed prose prose-sm max-w-none ${isOracle ? "font-mono prose-invert prose-purple prose-headings:text-purple-400 prose-a:text-purple-400 prose-strong:text-purple-200" : (isMe ? "prose-headings:text-black prose-a:text-blue-600 prose-strong:text-black" : "prose-invert")}`}
                           >
-                            {msg.text}
-                          </p>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {msg.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, '')}
+                            </ReactMarkdown>
+                          </div>
+                          {isOracle && (
+                            <div className="flex justify-end mt-1">
+                              <button
+                                onClick={() => playVoice(msg.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ''), msg.id)}
+                                disabled={loadingVoiceId === msg.id}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 border transition-all text-[10px] uppercase font-bold tracking-widest
+                                  ${
+                                    playingVoiceId === msg.id
+                                      ? "bg-purple-600 text-white border-purple-500"
+                                      : "bg-purple-900/30 text-purple-300 border-purple-500/30 hover:bg-purple-800/50 hover:border-purple-400"
+                                  }
+                                  ${loadingVoiceId === msg.id ? "opacity-50 cursor-not-allowed" : ""}
+                                `}
+                              >
+                                {loadingVoiceId === msg.id ? (
+                                  <>
+                                    <span className="material-symbols-outlined text-[14px] animate-spin">
+                                      sync
+                                    </span>
+                                    <span>Syncing...</span>
+                                  </>
+                                ) : playingVoiceId === msg.id ? (
+                                  <>
+                                    <span className="material-symbols-outlined text-[14px]">
+                                      stop_circle
+                                    </span>
+                                    <span>Stop</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="material-symbols-outlined text-[14px]">
+                                      volume_up
+                                    </span>
+                                    <span>Play Voice</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

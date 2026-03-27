@@ -227,6 +227,79 @@ app.post("/api/ai/chat", async (req, res) => {
   }
 });
 
+// Sarvam AI TTS Proxy
+app.post("/api/ai/tts", async (req, res) => {
+  try {
+    const { text } = req.body;
+    const apiKey = process.env.VITE_SARVAM_API_KEY;
+
+    if (!apiKey) {
+      console.error("[AI_TTS_PROXY] Missing VITE_SARVAM_API_KEY in .env");
+      return res.status(500).json({ error: "Sarvam API key missing" });
+    }
+    
+    if (!text || typeof text !== "string") {
+      return res.status(400).json({ error: "Text is required" });
+    }
+
+    console.log("[AI_TTS_PROXY] Requesting Sarvam TTS for text length:", text.length);
+
+    // Chunk text by words into 450 character maximums to pass API limits safely
+    const chunks = [];
+    const words = text.split(" ");
+    let current = "";
+    for (const word of words) {
+      if ((current + " " + word).length > 450) {
+        if (current) chunks.push(current.trim());
+        current = word;
+      } else {
+        current = current ? current + " " + word : word;
+      }
+    }
+    if (current) chunks.push(current.trim());
+
+    const allAudios = [];
+
+    // Process in batches of 5 to respect Sarvam limits per request
+    for (let i = 0; i < chunks.length; i += 5) {
+      const batch = chunks.slice(i, i + 5);
+      const sarvamRes = await fetch("https://api.sarvam.ai/text-to-speech", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-subscription-key": apiKey,
+        },
+        body: JSON.stringify({
+          inputs: batch,
+          target_language_code: "en-IN",
+          speaker: "ritu",
+          pace: 1.0,
+          speech_sample_rate: 8000,
+          enable_preprocessing: true,
+          model: "bulbul:v3",
+        }),
+      });
+
+      if (!sarvamRes.ok) {
+        const errText = await sarvamRes.text();
+        console.error("[AI_TTS_PROXY] Sarvam TTS Rejection in batch:", sarvamRes.status, errText);
+        throw new Error(errText);
+      }
+
+      const data = await sarvamRes.json();
+      if (data.audios) {
+        allAudios.push(...data.audios);
+      }
+    }
+
+    console.log("[AI_TTS_PROXY] Sarvam TTS Response completed. Audio chunks:", allAudios.length);
+    res.json({ audios: allAudios });
+  } catch (err) {
+    console.error("[AI_TTS_PROXY] Critical Proxy failure:", err);
+    res.status(500).json({ error: "AI node communication failure" });
+  }
+});
+
 // Server-Sent Events (SSE) Endpoint for real-time `onValue` subscription
 app.get(/^\/api\/stream\/(.*)/, (req, res) => {
   const dbPath = req.params[0];
