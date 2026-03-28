@@ -89,6 +89,13 @@ export const onValue = (pathRef, callback) => {
             val: () => data,
           });
         }
+      } else if (res.status === 404) {
+        if (!isCancelled) {
+          callback({
+            exists: () => false,
+            val: () => null,
+          });
+        }
       } else {
         console.error("Polling error: Server returned", res.status);
       }

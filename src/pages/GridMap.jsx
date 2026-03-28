@@ -341,7 +341,7 @@ export default function GridMap({ user }) {
         </div>
 
         {/* GPS location / Recenter */}
-        {/* <button
+        <button
           onClick={() => {
             if (window.faltricMap && window.faltricCenter) {
               window.faltricMap.panTo(window.faltricCenter);
@@ -353,7 +353,7 @@ export default function GridMap({ user }) {
           <span className="material-symbols-outlined !text-[24px] rotate-45">
             navigation
           </span>
-        </button> */}
+        </button>
 
         {/* Admin only: Add information to map */}
         <button
@@ -443,6 +443,11 @@ export default function GridMap({ user }) {
                       type: "Critical",
                       active:
                         "bg-pink-500/20 text-pink-400 border-pink-500/50 shadow-[0_0_10px_rgba(236,72,153,0.2)]",
+                    },
+                    {
+                      type: "Battery",
+                      active:
+                        "bg-purple-500/20 text-purple-400 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.2)]",
                     },
                   ].map(({ type, active }) => (
                     <button

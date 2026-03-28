@@ -17,7 +17,7 @@ function loadGoogleMapsOnce(apiKey) {
       delete window[cb];
     };
     const s = document.createElement("script");
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=drawing&loading=async&callback=${cb}`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=drawing,marker&loading=async&callback=${cb}`;
     s.async = true;
     s.defer = true;
     s.onerror = reject;
@@ -126,12 +126,46 @@ const MapComponent = ({
         zoomControlOptions: {
           position: window.google.maps.ControlPosition.RIGHT_BOTTOM,
         },
-        styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }],
+        styles: [
+          { featureType: "road", stylers: [{ visibility: "off" }] },
+          { featureType: "transit", stylers: [{ visibility: "off" }] },
+          { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+        ],
       });
 
       setMap(mapInstance);
       window.faltricMap = mapInstance;
       window.faltricCenter = { lat: 21.04718, lng: 75.769189 };
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const pos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            window.faltricCenter = pos;
+            mapInstance.setCenter(pos);
+
+            new window.google.maps.Marker({
+              position: pos,
+              map: mapInstance,
+              title: "Your Location",
+              icon: {
+                path: window.google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#4285F4",
+                fillOpacity: 1,
+                strokeColor: "white",
+                strokeWeight: 2,
+              },
+            });
+          },
+          () => {
+            console.warn("Geolocation service failed.");
+          }
+        );
+      }
     });
   }, [map]); // Re-check if map is not yet set
 
@@ -222,6 +256,8 @@ const MapComponent = ({
         color = "#22c55e"; // green
       else if (type.includes("critical") || type.includes("unrenewable"))
         color = "#ec4899"; // pink
+      else if (type.includes("battery"))
+        color = "#a855f7"; // purple
 
       const nodeData = (energyData || []).find(
         (d) =>
